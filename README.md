@@ -1,7 +1,7 @@
 # Lunar Lander
-
-<img align="center" src="https://github.com/alanjeffares/lunar-lander/blob/master/lunar_lander.gif"  width="400">
-
+<p align="center">
+<img src="https://github.com/alanjeffares/lunar-lander/blob/master/lunar_lander.gif"  width="400">
+</p>
 
 
 
