@@ -1,9 +1,13 @@
-# Lunar Lander
 <p align="center">
+# Lunar Lander
+
 <img src="https://github.com/alanjeffares/lunar-lander/blob/master/lunar_lander.gif"  width="500">
 </p>
 
+<div align="center">
 
+# This is gonna be centered!
+</div>
 
 ## Worked examples & proofs
 
