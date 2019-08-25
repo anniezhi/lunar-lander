@@ -1,4 +1,5 @@
 <div align="center">
+
 # Lunar Lander
 </div>
 
@@ -6,10 +7,7 @@
 <img src="https://github.com/alanjeffares/lunar-lander/blob/master/lunar_lander.gif"  width="500">
 </p>
 
-<div align="center">
 
-# This is gonna be centered!
-</div>
 
 ## Worked examples & proofs
 
