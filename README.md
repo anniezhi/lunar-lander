@@ -11,7 +11,7 @@ This project compares three different approaches for beating Lunar Lander using 
 
 All three approaches are saved and then analysed in a jupyter notebook. 
 
-Try the game yourself by running 'python play.py'!
+Try the game yourself by running `python play.py`!
 
 
 ## File Descriptions
