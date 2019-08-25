@@ -1,6 +1,8 @@
-<p align="center">
+<div align="center">
 # Lunar Lander
+</div>
 
+<p align="center">
 <img src="https://github.com/alanjeffares/lunar-lander/blob/master/lunar_lander.gif"  width="500">
 </p>
 
