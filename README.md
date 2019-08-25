@@ -20,4 +20,9 @@ Try the game yourself by running `python play.py`!
 * `lunar_lander_ml_images_player.py`, `lunar_lander_ml_states_player.py` and `lunar_lander_reinforcement_learning.py` are python files that play their respective models against the lunar lander game. 
 
 ## Getting Started
-
+After cloning the repo simply run the following lines in terminal to unzip the (rather large) image data:
+```
+unzip data/data.zip
+cd data; \rm -rf data*
+```
+Then run any of the `.py` files to watch the different models attempt to beat the game or check out the `ipynb` files to see the different training approaches and an evaluation of their performances. 
