@@ -1,6 +1,6 @@
 # Lunar Lander
 
-<img src="https://github.com/alanjeffares/lunar-lander/blob/master/lunar_lander.gif"  width="400" align="center">
+<img align="center" src="https://github.com/alanjeffares/lunar-lander/blob/master/lunar_lander.gif"  width="400">
 
 
 
