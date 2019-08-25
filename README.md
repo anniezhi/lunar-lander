@@ -13,14 +13,11 @@ All three approaches are saved and then analysed in a jupyter notebook.
 
 Try the game yourself by running `python play.py`!
 
-
 ## File Descriptions
+* `LunarLanderStateVectors.csv` and the `data` folder contain the training data for the first two approaches respectively.
+* `states_model.ipynb`, `images_model.ipynb` and `deepqlearning_model.ipynb` are the three notebooks in which the different approaches applied and `evaluation.ipynb` is where the resulting performances are compared.
+* `task1.mod`, `task2.mod` and `dqn_LunarLander-v2_weights.h5f` are files containing the best performing models weights. 
+* `lunar_lander_ml_images_player.py`, `lunar_lander_ml_states_player.py` and `lunar_lander_reinforcement_learning.py` are python files that play their respective models against the lunar lander game. 
 
-
-## Code implementations
-
-* [Gram-Schmidt implementation](https://github.com/alanjeffares/elements-of-statistical-learning/blob/master/chapter-3/code/Gram-Schmidt.R) - My implementation of algorithm 3.1
-
-* [Exercise 3.2 simulation experiment](https://github.com/alanjeffares/elements-of-statistical-learning/blob/master/chapter-3/code/exercise_3.2.R) - Simulation experiment for exercise 3.2
-
+## Getting Started
 
