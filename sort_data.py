@@ -57,6 +57,7 @@ actions_list.append(actions)
 
 # save image to gifs
 for i, episode in enumerate(episodes_list):
+    print(f'saving {i} / {len(episodes_list)}')
     images = []
     for frame in episode:
         images.append(imageio.imread(frame))
