@@ -6,8 +6,21 @@ import os
 import re
 import imageio.v2 as imageio
 import pickle
+import platform
 
-TRAIN_DIR = os.getcwd() + '/lunar-lander/data/'
+def get_storage_dir():
+    platform_info = platform.uname()
+    system = platform_info[0]
+    node = platform_info[1]
+    if system.lower() == 'linux':
+        if 'ohws59' in node:
+            return "/local/home/xiazhi/Desktop/code/torch-rl-fork/storage"
+        if 'eu' in node:
+            return "/cluster/work/hilliges/xiazhi/lunar-lander/data"
+    return "/Users/anniezhi/Desktop/MasterThesis_RLwithUserIntention/code/lunar-lander/data"
+
+
+TRAIN_DIR = get_storage_dir()
 ROWS = 64
 COLS = 64
 CHANNELS = 1
