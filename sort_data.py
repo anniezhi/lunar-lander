@@ -14,10 +14,10 @@ def get_storage_dir():
     node = platform_info[1]
     if system.lower() == 'linux':
         if 'ohws59' in node:
-            return "/local/home/xiazhi/Desktop/code/torch-rl-fork/storage"
+            return "/local/home/xiazhi/Desktop/code/lunar-lander/data/"
         if 'eu' in node:
-            return "/cluster/work/hilliges/xiazhi/lunar-lander/data"
-    return "/Users/anniezhi/Desktop/MasterThesis_RLwithUserIntention/code/lunar-lander/data"
+            return "/cluster/work/hilliges/xiazhi/lunar-lander/data/"
+    return "/Users/anniezhi/Desktop/MasterThesis_RLwithUserIntention/code/lunar-lander/data/"
 
 
 TRAIN_DIR = get_storage_dir()
