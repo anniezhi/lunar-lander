@@ -60,11 +60,18 @@ for i, episode in enumerate(episodes_list):
     images = []
     for frame in episode:
         images.append(imageio.imread(frame))
-    imageio.mimsave(os.getcwd()+f'/lunar-lander/data_new/expert/gifs/{i}.gif', images)
+    if 'lunar-lander' in os.getcwd():
+        imageio.mimsave(os.getcwd()+f'/data_new/expert/gifs/{i}.gif', images)
+    else:
+        imageio.mimsave(os.getcwd()+f'/lunar-lander/data_new/expert/gifs/{i}.gif', images)
 
 # save actions
-with open(os.getcwd()+f'/lunar-lander/data_new/expert/actions.pkl', "wb") as fp:
-    pickle.dump(actions_list, fp)
+if 'lunar-lander' in os.getcwd():
+    with open(os.getcwd()+f'/data_new/expert/actions.pkl', "wb") as fp:
+        pickle.dump(actions_list, fp)
+else:
+    with open(os.getcwd()+f'/lunar-lander/data_new/expert/actions.pkl', "wb") as fp:
+        pickle.dump(actions_list, fp)
 
 ## move data to different folders
 # for filename, dest_folder in file_list:
