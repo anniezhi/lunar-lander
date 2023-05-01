@@ -42,6 +42,8 @@ for i, image_file in enumerate(image_filenames):
     match_action = re.search(r"\d+(?=.jpeg)", image_file)
     action = int(match_action.group())
 
+    print(len(episodes_list), '\t', image_file, '\t', frame_id)
+
     if frame_id < frame_id_last:
         episodes_list.append(episode)
         episode = [image_file]
