@@ -11,6 +11,8 @@ import os
 import re
 import numpy as np
 from PIL import Image
+import cv2
+import skimage
 from math import ceil
 from model import *
 
@@ -84,6 +86,7 @@ if __name__ == "__main__":
     ## Load data
 
     datasets = []
+    ROWS, COLS = 128, 128
 
     # props_agent = set()
     # props_env = set()
@@ -107,6 +110,8 @@ if __name__ == "__main__":
         # truth_data = np.load(root_dir+grid_file)[:500]
         # agent_poss = np.load(root_dir+agent_poss_file)[:500]
 
+        agent_actions = pkl.load() ##TODO
+
         gif_files = [f'{i}.gif' for i in range(args.num_samples)]
         train_data = []
         remains = []
@@ -116,27 +121,28 @@ if __name__ == "__main__":
             for t in range(im.n_frames):
                 im.seek(t)
                 tmp = im.convert()
-                frames.append(np.asarray(tmp))
+                frames.append(skimage.transform.resize(np.asarray(tmp), (ROWS, COLS)))
             if len(frames) >= 20:
                 frames = np.asarray(frames[:20])
                 train_data.append(frames[None,:])
                 remains.append(idx)
         
-        truth_data = truth_data[remains] / 255.0
-        truth_data = np.moveaxis(truth_data, 3, 1)
-        train_data = np.concatenate(train_data) / 255.0
+        # truth_data = truth_data[remains] / 255.0
+        # truth_data = np.moveaxis(truth_data, 3, 1)
+        train_data = np.concatenate(train_data)
         train_data = np.moveaxis(train_data, 4, 1)
-        agent_poss = agent_poss[remains] / 255.0
-        agent_poss = np.moveaxis(agent_poss, 3, 1)
-        agent_label = np.array([labels_dict_agent[agent_v]] * len(remains))
-        env_label = np.array([labels_dict_env[env_N]] * len(remains))
-        
+        # agent_poss = agent_poss[remains] / 255.0
+        # agent_poss = np.moveaxis(agent_poss, 3, 1)
+        # agent_label = np.array([labels_dict_agent[agent_v]] * len(remains))
+        agent_label = np.array([0]*len(train_data))
+        # env_label = np.array([labels_dict_env[env_N]] * len(remains))
+
         datasets.append(TensorDataset(torch.tensor(train_data,dtype=torch.float32,device=device), 
-                                                 torch.tensor(truth_data,dtype=torch.float32,device=device), 
-                                                 torch.tensor(agent_poss,dtype=torch.float32,device=device), 
+                                                #  torch.tensor(truth_data,dtype=torch.float32,device=device), 
+                                                #  torch.tensor(agent_poss,dtype=torch.float32,device=device), 
                                                  torch.tensor(agent_label,device=device),
-                                                 torch.tensor(env_label,device=device))
-        )
+                                                #  torch.tensor(env_label,device=device)
+                        ))
     
     dataset = ConcatDataset(datasets)
     sampler = RandomSampler(dataset, replacement=True, num_samples=args.epoch_size)
