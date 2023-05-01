@@ -25,9 +25,12 @@ ROWS = 64
 COLS = 64
 CHANNELS = 1
 
-# generate filenames from the data folder and do sampling
+# generate filenames from the data folder
 image_filenames = [TRAIN_DIR+i for i in os.listdir(TRAIN_DIR) if not i.startswith('.')] # use this for full dataset
-image_filenames = sorted(image_filenames)
+key1 = lambda x: x.split('/')[-1][:25]
+image_filenames.sort(key=key1)
+key2 = lambda x: int(re.search(r'(?<=_)\d+(?=_\d+\.jpeg$)', x).group())
+image_filenames.sort(key=key2)
 
 # Iterate throuigh the filenames and for each one load the image, resize and normalise
 actions_list = []
