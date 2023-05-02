@@ -279,13 +279,13 @@ if __name__ == "__main__":
             # writer.add_embedding(torch.concat(log_embeds_enc), metadata=torch.concat(log_classes_env).tolist(), global_step=epoch, tag='enc_embeds_env_train')
 
         ## save checkpoint
-        if loss <= min_loss:
-            min_loss = loss
-            torch.save({'epoch': epoch,
-                        'model_state_dict': model.state_dict(),
-                        'optimizer_state_dict': optimizer.state_dict(),
-                        'scheduler_state_dict': scheduler.state_dict(),
-                        'loss': loss,
-            }, save_dir+'best_model.pt')
+        # if loss <= min_loss:
+        #     min_loss = loss
+        #     torch.save({'epoch': epoch,
+        #                 'model_state_dict': model.state_dict(),
+        #                 'optimizer_state_dict': optimizer.state_dict(),
+        #                 'scheduler_state_dict': scheduler.state_dict(),
+        #                 'loss': loss,
+        #     }, save_dir+'best_model.pt')
 
     writer.close()
