@@ -118,6 +118,7 @@ if __name__ == "__main__":
         train_data = []
         remains = []
         for idx, file in enumerate(gif_files):
+            print(f'loading gif {idx} / {len(gif_files)}')
             frames = []
             im = Image.open(root_dir + 'gifs/' + file)
             for t in range(im.n_frames):
@@ -148,6 +149,7 @@ if __name__ == "__main__":
                         ))
     
     dataset = ConcatDataset(datasets)
+    print(f'length of dataset {len(dataset)}')
     sampler = RandomSampler(dataset, replacement=True, num_samples=args.epoch_size)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, num_workers=0, sampler=sampler)
 
