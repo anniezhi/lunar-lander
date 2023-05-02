@@ -13,6 +13,7 @@ import numpy as np
 from PIL import Image
 import cv2
 import skimage
+import pickle
 from math import ceil
 from model import *
 
@@ -110,8 +111,9 @@ if __name__ == "__main__":
         # truth_data = np.load(root_dir+grid_file)[:500]
         # agent_poss = np.load(root_dir+agent_poss_file)[:500]
 
-        agent_actions = pkl.load() ##TODO
-
+        with open(root_dir+actions_file, 'rb') as f:
+            agent_actions = pickle.load(f)
+    
         gif_files = [f'{i}.gif' for i in range(args.num_samples)]
         train_data = []
         remains = []
@@ -127,19 +129,20 @@ if __name__ == "__main__":
                 train_data.append(frames[None,:])
                 remains.append(idx)
         
-        # truth_data = truth_data[remains] / 255.0
-        # truth_data = np.moveaxis(truth_data, 3, 1)
         train_data = np.concatenate(train_data)
         train_data = np.moveaxis(train_data, 4, 1)
+        truth_data = train_data.mean(2)
         # agent_poss = agent_poss[remains] / 255.0
         # agent_poss = np.moveaxis(agent_poss, 3, 1)
+        agent_actions = np.stack([agent_actions[i][:20] for i in remains])
         # agent_label = np.array([labels_dict_agent[agent_v]] * len(remains))
         agent_label = np.array([0]*len(train_data))
         # env_label = np.array([labels_dict_env[env_N]] * len(remains))
 
         datasets.append(TensorDataset(torch.tensor(train_data,dtype=torch.float32,device=device), 
-                                                #  torch.tensor(truth_data,dtype=torch.float32,device=device), 
+                                                 torch.tensor(truth_data,dtype=torch.float32,device=device), 
                                                 #  torch.tensor(agent_poss,dtype=torch.float32,device=device), 
+                                                 torch.tensor(agent_actions,dtype=torch.float32,device=device), 
                                                  torch.tensor(agent_label,device=device),
                                                 #  torch.tensor(env_label,device=device)
                         ))
@@ -148,14 +151,14 @@ if __name__ == "__main__":
     sampler = RandomSampler(dataset, replacement=True, num_samples=args.epoch_size)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, num_workers=0, sampler=sampler)
 
-    model = RLNetwork(3, 16, 4, 16)
+    model = RLNetwork(ROWS, COLS, 3, 4, 16)
     model.to(device)
     model.train()
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[600], gamma=0.5)
 
-    nce_loss = NCELoss(args.nce_temp)
+    # nce_loss = NCELoss(args.nce_temp)
 
     if args.recon_loss == 'mse':
         recon_loss_func = F.mse_loss
@@ -166,8 +169,8 @@ if __name__ == "__main__":
 
     for epoch in range(args.epochs):
 
-        contrast_loss_env = 0
-        contrast_loss_agent = 0
+        # contrast_loss_env = 0
+        # contrast_loss_agent = 0
         recon_loss_grid = 0
         recon_loss_pos = 0
         kl_loss = 0
@@ -180,8 +183,11 @@ if __name__ == "__main__":
             log_grids_truth = []
             log_grids_recon = []
 
-            log_poss_truth = []
-            log_poss_recon = []
+            # log_poss_truth = []
+            # log_poss_recon = []
+
+            log_actions_truth = []
+            log_actions_recon = []
 
             log_embeds_enc = []
             log_classes_agent = []
@@ -189,14 +195,14 @@ if __name__ == "__main__":
 
         for batch_id, batch_data in enumerate(dataloader):
             
-            seqs_train, grids_truth, agent_poss, agent_class, env_class = batch_data
+            seqs_train, grids_truth, agent_actions, agent_class = batch_data
             grids_recon, poss_recon, mu, logvar, projections = model(seqs_train)
 
             recon_loss_grid += recon_loss_func(grids_truth, grids_recon)
-            recon_loss_pos += recon_loss_func(agent_poss, poss_recon)
+            # recon_loss_pos += recon_loss_func(agent_poss, poss_recon)
             
-            contrast_loss_env += nce_loss(projections, env_class.tolist())
-            contrast_loss_agent += nce_loss(projections, agent_class.tolist())
+            # contrast_loss_env += nce_loss(projections, env_class.tolist())
+            # contrast_loss_agent += nce_loss(projections, agent_class.tolist())
 
             kl_loss += -0.5 * torch.mean(1 + logvar - mu**2 - logvar.exp())
         
@@ -205,20 +211,20 @@ if __name__ == "__main__":
                 log_grids_truth.append(grids_truth[:args.log_count-counter_log].detach())
                 log_grids_recon.append(grids_recon[:args.log_count-counter_log].detach())
 
-                log_poss_truth.append(agent_poss[:args.log_count-counter_log].detach())
-                log_poss_recon.append(poss_recon[:args.log_count-counter_log].detach())
+                # log_poss_truth.append(agent_poss[:args.log_count-counter_log].detach())
+                # log_poss_recon.append(poss_recon[:args.log_count-counter_log].detach())
 
                 log_embeds_enc.append(projections[:args.log_count-counter_log].detach())
 
-                log_classes_env.append(env_class[:args.log_count-counter_log].detach())
+                # log_classes_env.append(env_class[:args.log_count-counter_log].detach())
                 log_classes_agent.append(agent_class[:args.log_count-counter_log].detach())
 
                 counter_log += min(len(grids_recon), args.log_count-counter_log)
 
-        contrast_loss_agent /= (batch_id+1)
-        contrast_loss_env /= (batch_id+1)
-        cl_loss = args.nce_weight * (contrast_loss_agent + contrast_loss_env)
-        cl_loss *= args.cl_weight
+        # contrast_loss_agent /= (batch_id+1)
+        # contrast_loss_env /= (batch_id+1)
+        # cl_loss = args.nce_weight * (contrast_loss_agent + contrast_loss_env)
+        # cl_loss *= args.cl_weight
 
         recon_loss_grid /= (batch_id+1)
         recon_loss_pos /= (batch_id+1)
@@ -240,23 +246,24 @@ if __name__ == "__main__":
         vae_loss = recon_loss + kl_loss
         vae_loss *= args.vae_weight
 
-        loss = cl_loss + vae_loss
+        # loss = cl_loss + vae_loss
+        loss = vae_loss
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         scheduler.step()
 
         ## log numbers to tensorboard
-        print('epoch {} loss {:.4f} (rec_env{:.4f} rec_trace{:.4f} kl{:.4f} cl{:.4f}) lr {:.4f}'.format(epoch, loss.item(), 
-                                                                                                        args.vae_weight*recon_loss_grid.item(), 
-                                                                                                        args.vae_weight*recon_loss_pos.item(), 
-                                                                                                        args.vae_weight*kl_loss.item(), 
-                                                                                                        cl_loss.item(), scheduler.get_last_lr()[0]))
+        print('epoch {} loss {:.4f} (rec_env {:.4f} kl {:.4f} lr {:.4f})'.format(epoch, loss.item(), 
+                                                                                                        args.vae_weight*recon_loss_grid.item(),
+                                                                                                        args.vae_weight*kl_loss.item(),
+                                                                                                        scheduler.get_last_lr()[0]
+                                                                                                        ))
         writer.add_scalar('loss_total/train', loss.item(), epoch)
-        writer.add_scalar('loss_cl/train', cl_loss.item(), epoch)
+        # writer.add_scalar('loss_cl/train', cl_loss.item(), epoch)
         writer.add_scalar('loss_vae/train', vae_loss.item(), epoch)
         writer.add_scalar('loss_recon_grid/train', args.vae_weight*recon_loss_grid.item(), epoch)
-        writer.add_scalar('loss_recon_pos/train', args.vae_weight*recon_loss_pos.item(), epoch)
+        # writer.add_scalar('loss_recon_pos/train', args.vae_weight*recon_loss_pos.item(), epoch)
         writer.add_scalar('loss_kl/train', args.vae_weight*kl_loss.item(), epoch)
         writer.add_scalar('lr/train', scheduler.get_last_lr()[0], epoch)
 
@@ -264,10 +271,10 @@ if __name__ == "__main__":
         if logging:
             writer.add_images('truth_envs/train', torch.concat(log_grids_truth), epoch, dataformats='NCWH')
             writer.add_images('recon_envs/train', torch.concat(log_grids_recon), epoch, dataformats='NCWH')
-            writer.add_images('truth_traces/train', torch.concat(log_poss_truth), epoch, dataformats='NCWH')
-            writer.add_images('recon_traces/train', torch.concat(log_poss_recon), epoch, dataformats='NCWH')
+            # writer.add_images('truth_traces/train', torch.concat(log_poss_truth), epoch, dataformats='NCWH')
+            # writer.add_images('recon_traces/train', torch.concat(log_poss_recon), epoch, dataformats='NCWH')
             writer.add_embedding(torch.concat(log_embeds_enc), metadata=torch.concat(log_classes_agent).tolist(), global_step=epoch, tag='enc_embeds_agent_train')
-            writer.add_embedding(torch.concat(log_embeds_enc), metadata=torch.concat(log_classes_env).tolist(), global_step=epoch, tag='enc_embeds_env_train')
+            # writer.add_embedding(torch.concat(log_embeds_enc), metadata=torch.concat(log_classes_env).tolist(), global_step=epoch, tag='enc_embeds_env_train')
 
         ## save checkpoint
         if loss <= min_loss:
