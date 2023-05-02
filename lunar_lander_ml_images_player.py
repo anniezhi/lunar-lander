@@ -6,6 +6,7 @@ import cv2
 # MOD Extra imports for image handling
 from PIL import Image
 import os
+os.environ['PYOPENGL_PLATFORM'] = 'egl'
 import time
 import datetime
 import keras
@@ -370,54 +371,54 @@ class LunarLanderContinuous(LunarLander):
 
 if __name__=="__main__":
 	
-	# Load the Lunar Lander environment
-	env = LunarLander()
+    # Load the Lunar Lander environment
+    env = LunarLander()
 
-	# Load and initialise the contrll model
-	ROWS = 64
-	COLS = 64
-	CHANNELS = 1
-	model = keras.models.load_model("task2.mod")
+    # Load and initialise the contrll model
+    ROWS = 64
+    COLS = 64
+    CHANNELS = 1
+    model = keras.models.load_model(os.getcwd()+"/lunar-lander/"+"task2.mod")
 
-	env = LunarLander()
+    env = LunarLander()
 
-	total_rewards = list()
+    total_rewards = list()
 
-	for i in range(0, 200):
-		s = env.reset()
+    for i in range(0, 200):
+        s = env.reset()
 
 		# Run the game loop
-		total_reward = 0
-		steps = 0
-		while True:
-	
-		    # Access the rednered scrnen image
-		    raw_image = env.render(mode='rgb_array')
+        total_reward = 0
+        steps = 0
+        while True:
+                    
+            # Access the rednered scrnen image
+            raw_image = env.render(mode='rgb_array')
 	
 		    # Prepare the image for presentation to the network
-		    processed_image = cv2.resize(raw_image, (ROWS, COLS), interpolation=cv2.INTER_CUBIC)
-		    processed_image = cv2.cvtColor(processed_image, cv2.COLOR_RGB2GRAY)
-		    processed_image = np.array(processed_image, dtype=np.float)
-		    processed_image = processed_image.reshape((1, CHANNELS, ROWS, COLS))
-		    processed_image = processed_image/255
+            processed_image = cv2.resize(raw_image, (ROWS, COLS), interpolation=cv2.INTER_CUBIC)
+            processed_image = cv2.cvtColor(processed_image, cv2.COLOR_RGB2GRAY)
+            processed_image = np.array(processed_image, dtype=np.float)
+            processed_image = processed_image.reshape((1, CHANNELS, ROWS, COLS))
+            processed_image = processed_image/255
 	
-		    # Get the model to make a prediction
-		    a = model.predict_classes(processed_image)
-		    a = a[0]
+            # Get the model to make a prediction
+            a = model.predict_classes(processed_image)
+            a = a[0]
 	
 		    # Step on the game
-		    s, r, done, info = env.step(a)
-		    env.render()
-		    total_reward += r
-		    if steps % 20 == 0 or done:
-		        print(["{:+0.2f}".format(x) for x in s])
-		        print("step {} total_reward {:+0.2f}".format(steps, total_reward))
-		    steps += 1
+            s, r, done, info = env.step(a)
+            env.render()
+            total_reward += r
+            if steps % 20 == 0 or done:
+                print(["{:+0.2f}".format(x) for x in s])
+                print("step {} total_reward {:+0.2f}".format(steps, total_reward))
+            steps += 1
 		
 		    		
-		    if done: 
-		        total_rewards.append(total_reward)
-		        break
+            if done: 
+                total_rewards.append(total_reward)
+                break
 
 print("total rewards", total_rewards)
 print("average total reward", np.mean(total_rewards))
