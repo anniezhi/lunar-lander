@@ -153,7 +153,8 @@ if __name__ == "__main__":
     # sampler = RandomSampler(dataset, replacement=True, num_samples=args.epoch_size)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, num_workers=0, shuffle=True)
 
-    model = RLNetwork(ROWS, COLS, 3, 4, 16)
+    # model = RLNetwork(ROWS, COLS, 3, 4, 16)
+    model = RLNetwork(ROWS, COLS, 3, 16, 4, 16)
     model.to(device)
     model.train()
 
