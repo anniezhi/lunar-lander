@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from more_itertools import locate
 
 # class Encoder3d(nn.Module):
 #     def __init__(self, rows, cols, in_channels):
@@ -96,3 +97,72 @@ class RLNetwork(nn.Module):
         recon_grid = self.decoder_e(z)
         recon_agent = self.decoder_a(z)
         return recon_grid, recon_agent, mu, logvar, z
+    
+
+class NCELoss(nn.Module):
+    def __init__(self, temp) -> None:
+        super(NCELoss, self).__init__()
+        self.temp = temp
+
+    # def loss_1(self, projs):
+    #     z = F.normalize(projs, p=2, dim=1)
+    #     sims = F.cosine_similarity(z.unsqueeze(1), z.unsqueeze(0), dim=2)
+    #     mask = (~torch.eye(len(z),len(z),dtype=bool)).float()
+    #     nominator = torch.exp(sims / self.temp) * mask
+    #     return -torch.log(torch.sum(nominator) / 2)
+
+    # def loss_2(self, projs, labels, unique_labels):
+    #     index_1 = list(locate(labels, lambda x: x == unique_labels[0]))
+    #     index_2 = list(locate(labels, lambda x: x == unique_labels[1]))
+    #     projs_1 = projs[index_1]
+    #     projs_2 = projs[index_2]
+
+    #     z_1 = F.normalize(projs_1, p=2, dim=1)
+    #     z_2 = F.normalize(projs_2, p=2, dim=1)
+    #     reps = torch.cat([z_1, z_2], dim=0)
+    #     mask_diag = (~torch.eye(len(projs),len(projs),dtype=bool)).float()
+    #     mask_cat = torch.block_diag(torch.ones(len(z_1), len(z_1)), torch.ones(len(z_2), len(z_2)))
+
+    #     sim_mat = F.cosine_similarity(reps.unsqueeze(1), reps.unsqueeze(0), dim=2)
+    #     sim_mat_exp = torch.exp(sim_mat / self.temp)
+
+    #     nom = torch.sum(sim_mat_exp * mask_cat * mask_diag, dim=1) / torch.sum(mask_cat * mask_diag, dim=1)
+    #     denom = torch.sum(sim_mat_exp * mask_diag, dim=1)
+
+    #     all_losses = -torch.log(nom / denom)
+    #     loss = torch.mean(all_losses)
+    #     return loss
+
+    def loss_multi(self, projs, labels, unique_labels):
+        z = []
+        for l in unique_labels:
+            index_l = list(locate(labels, lambda x: x == l))
+            projs_l = projs[index_l]
+            z.append(F.normalize(projs_l, p=2, dim=1))
+        reps = torch.cat(z, dim=0)
+        mask_diag = (~torch.eye(len(projs),len(projs),dtype=bool)).float().to(reps.device)
+        mask_cat = torch.block_diag(*[torch.ones(len(zi),len(zi)) for zi in z]).to(reps.device)
+        
+        sim_mat = F.cosine_similarity(reps.unsqueeze(1), reps.unsqueeze(0), dim=2)
+        sim_mat_exp = torch.exp(sim_mat / self.temp)
+
+        nom = torch.zeros(len(projs)).to(reps.device)
+        mask_nom = (torch.sum(mask_cat * mask_diag, dim=1) != 0)
+        nom[mask_nom] = torch.sum(sim_mat_exp * mask_cat * mask_diag, dim=1)[mask_nom] / torch.sum(mask_cat * mask_diag, dim=1)[mask_nom]
+        denom = torch.sum(sim_mat_exp * mask_diag, dim=1)
+
+        all_losses = torch.zeros(len(projs)).to(reps.device)
+        all_losses[mask_nom] = -torch.log(nom[mask_nom] / denom[mask_nom])
+        loss = torch.mean(all_losses)
+        return loss
+
+    def forward(self, projs, labels):
+        unique_labels = list(set(labels))
+        
+        ## only positive case
+        # if len(unique_labels) == 1:
+        #     return self.loss_1(projs)
+        # elif len(unique_labels) == 2:
+        #     return self.loss_2(projs, labels, unique_labels)
+        # else:
+        return self.loss_multi(projs, labels, unique_labels)

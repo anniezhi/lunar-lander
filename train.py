@@ -13,6 +13,9 @@ import numpy as np
 from PIL import Image
 import cv2
 import skimage
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import skvideo.io
 import pickle
 from math import ceil
 from model import *
@@ -31,6 +34,8 @@ parser.add_argument("--models", nargs='+', type=str, default=None,
                     help="names of the trained agent models")
 parser.add_argument("--num-samples", type=int, default=500,
                     help="number of samples of each model to load")
+parser.add_argument("--seq-length", type=int, default=20,
+                    help="length of sequence for input")
 parser.add_argument("--save-dir", type=str, default=None,
                     help="dir to save trained model")
 parser.add_argument("--epochs", type=int, default=100,
@@ -69,6 +74,8 @@ parser.add_argument("--nce-temp", type=float, default=0.5,
                     help="NCE loss temperature tau (default: 0.5)")
 parser.add_argument("--recon-loss", type=str, default='mse', choices=['mse', 'huber'],
                     help="loss function for reconstruction, options [mse, huber]")
+parser.add_argument("--milestones", nargs='+', type=int, default=[600],
+                    help="milestones to decrease learning rate")
 
 
 if __name__ == "__main__":
@@ -99,53 +106,87 @@ if __name__ == "__main__":
     # labels_dict_agent = dict(zip(props_agent, list(range(len(props_agent)))))
     # labels_dict_env = dict(zip(props_env, list(range(len(props_env)))))
 
-    for model in args.models:
-        root_dir = os.getcwd() + '/lunar-lander/data_new/' + model + '/'
-        actions_file = 'actions.pkl'
-        # grid_file = 'env_grids_rgb_double.npy'
-        # agent_poss_file = 'agent_poss_trimmed.npy'
-
-        # agent_v = int(re.search(r"(?<=v)\d+", model).group())
-        # env_N = int(re.search(r"(?<=N)\d+", model).group())
+    for model_id, model in enumerate(args.models):
+        # root_dir = os.getcwd() + '/lunar-lander/data_new/' + model + '/'
+        root_dir = os.getcwd() + '/lunar-lander/data_videos/' + model + '/'
+        # actions_file = 'actions.pkl'
+        actions_file = 'actions.npz'
+        grid_file = 'env_grids.npy'
+        agent_poss_file = 'agent_poss.npz'
         
         # truth_data = np.load(root_dir+grid_file)[:500]
         # agent_poss = np.load(root_dir+agent_poss_file)[:500]
+        truth_data = np.load(root_dir+grid_file)
+        agent_poss = np.load(root_dir+agent_poss_file)
+        agent_poss = [agent_poss[_] for _ in [*agent_poss]]
 
-        with open(root_dir+actions_file, 'rb') as f:
-            agent_actions = pickle.load(f)
+        # with open(root_dir+actions_file, 'rb') as f:
+        #     agent_actions = pickle.load(f)
+
+        agent_actions = np.load(root_dir+actions_file)
+        agent_actions = [agent_actions[_] for _ in [*agent_actions]]
     
-        gif_files = [f'{i}.gif' for i in range(args.num_samples)]
+        # gif_files = [f'{i}.gif' for i in range(args.num_samples)]
+        gif_files = [f'final-model-ppo-LunarLander-v2-{model}-{i}.mp4' for i in range(args.num_samples)]
         train_data = []
         remains = []
         for idx, file in enumerate(gif_files):
             print(f'loading gif {idx} / {len(gif_files)}')
-            frames = []
-            im = Image.open(root_dir + 'gifs/' + file)
-            for t in range(im.n_frames):
-                im.seek(t)
-                tmp = im.convert()
-                frames.append(skimage.transform.resize(np.asarray(tmp), (ROWS, COLS)))
-            if len(frames) >= 20:
-                frames = np.asarray(frames[:20])
-                train_data.append(frames[None,:])
+            # frames = []
+            # im = Image.open(root_dir + 'gifs/' + file)
+            # for t in range(im.n_frames):
+            #     im.seek(t)
+            #     tmp = im.convert()
+            #     frames.append(skimage.transform.resize(np.asarray(tmp), (ROWS, COLS)))
+            # if len(frames) >= 20:
+            #     frames = np.asarray(frames[:20])
+            #     train_data.append(frames[None,:])
+            #     remains.append(idx)
+
+            frames = skvideo.io.vread(root_dir + file)
+            if len(frames) >= args.seq_length:
+                frames = frames[:args.seq_length]
+                frames = skimage.transform.resize(frames, (len(frames), ROWS, COLS, 3))
+                train_data.append(frames[None, :])
                 remains.append(idx)
         
         train_data = np.concatenate(train_data)
         train_data = np.moveaxis(train_data, 4, 1)
-        truth_data = train_data.mean(2)
+        # truth_data = train_data.mean(2)
+        truth_data = skimage.transform.resize(truth_data[remains], (len(remains), ROWS, COLS, 3))
+        truth_data = np.moveaxis(truth_data, 3, 1)
+        
         # agent_poss = agent_poss[remains] / 255.0
         # agent_poss = np.moveaxis(agent_poss, 3, 1)
-        agent_actions = np.stack([agent_actions[i][:20] for i in remains])
-        # agent_label = np.array([labels_dict_agent[agent_v]] * len(remains))
-        agent_label = np.array([0]*len(train_data))
+        agent_poss = np.stack([agent_poss[i][:args.seq_length] for i in remains])
+        # convert to locations in resized image
+        SCALE = 30
+        # agent_poss = np.flip(agent_poss, -1) # swap y and x coordinates
+        agent_poss[...,1] = 400-agent_poss[...,1]*SCALE
+        agent_poss[...,0] = agent_poss[...,0]*SCALE
+        agent_poss[...,1] *= ROWS / 400
+        agent_poss[...,0] *= COLS / 600
+        agent_poss = agent_poss.astype(int)
+        # add circle patches
+        agent_poss_imgs = np.ones([len(truth_data), ROWS, COLS, 3])
+        for i, poss in enumerate(agent_poss):
+            for t in range(len(poss)):
+                circle = cv2.circle(agent_poss_imgs[i], center=poss[t], 
+                                    radius=3, color=(128/255, 102/255, 230/255), 
+                                    )
+        agent_poss_imgs = np.moveaxis(agent_poss_imgs, 3, 1)
+
+        agent_actions = np.stack([agent_actions[i][:args.seq_length] for i in remains])
+        agent_label = np.array([model_id] * len(remains))
+        # agent_label = np.array([0]*len(train_data))
         # env_label = np.array([labels_dict_env[env_N]] * len(remains))
 
         datasets.append(TensorDataset(torch.tensor(train_data,dtype=torch.float32,device=device), 
-                                                 torch.tensor(truth_data,dtype=torch.float32,device=device), 
-                                                #  torch.tensor(agent_poss,dtype=torch.float32,device=device), 
-                                                 torch.tensor(agent_actions,dtype=torch.float32,device=device), 
-                                                 torch.tensor(agent_label,device=device),
-                                                #  torch.tensor(env_label,device=device)
+                                      torch.tensor(truth_data,dtype=torch.float32,device=device), 
+                                      torch.tensor(agent_poss_imgs,dtype=torch.float32,device=device), 
+                                      torch.tensor(agent_actions,dtype=torch.float32,device=device), 
+                                      torch.tensor(agent_label,device=device),
+                                    #   torch.tensor(env_label,device=device)
                         ))
     
     dataset = ConcatDataset(datasets)
@@ -159,9 +200,9 @@ if __name__ == "__main__":
     model.train()
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[600], gamma=0.5)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.milestones, gamma=0.5)
 
-    # nce_loss = NCELoss(args.nce_temp)
+    nce_loss = NCELoss(args.nce_temp)
 
     if args.recon_loss == 'mse':
         recon_loss_func = F.mse_loss
@@ -173,7 +214,7 @@ if __name__ == "__main__":
     for epoch in range(args.epochs):
 
         # contrast_loss_env = 0
-        # contrast_loss_agent = 0
+        contrast_loss_agent = 0
         recon_loss_grid = 0
         recon_loss_pos = 0
         kl_loss = 0
@@ -186,8 +227,8 @@ if __name__ == "__main__":
             log_grids_truth = []
             log_grids_recon = []
 
-            # log_poss_truth = []
-            # log_poss_recon = []
+            log_poss_truth = []
+            log_poss_recon = []
 
             log_actions_truth = []
             log_actions_recon = []
@@ -198,14 +239,14 @@ if __name__ == "__main__":
 
         for batch_id, batch_data in enumerate(dataloader):
             
-            seqs_train, grids_truth, agent_actions, agent_class = batch_data
+            seqs_train, grids_truth, poss_truth, agent_actions, agent_class = batch_data
             grids_recon, poss_recon, mu, logvar, projections = model(seqs_train)
 
             recon_loss_grid += recon_loss_func(grids_truth, grids_recon)
-            # recon_loss_pos += recon_loss_func(agent_poss, poss_recon)
+            recon_loss_pos += recon_loss_func(poss_truth, poss_recon)
             
             # contrast_loss_env += nce_loss(projections, env_class.tolist())
-            # contrast_loss_agent += nce_loss(projections, agent_class.tolist())
+            contrast_loss_agent += nce_loss(projections, agent_class.tolist())
 
             kl_loss += -0.5 * torch.mean(1 + logvar - mu**2 - logvar.exp())
         
@@ -214,8 +255,8 @@ if __name__ == "__main__":
                 log_grids_truth.append(grids_truth[:args.log_count-counter_log].detach())
                 log_grids_recon.append(grids_recon[:args.log_count-counter_log].detach())
 
-                # log_poss_truth.append(agent_poss[:args.log_count-counter_log].detach())
-                # log_poss_recon.append(poss_recon[:args.log_count-counter_log].detach())
+                log_poss_truth.append(poss_truth[:args.log_count-counter_log].detach())
+                log_poss_recon.append(poss_recon[:args.log_count-counter_log].detach())
 
                 log_embeds_enc.append(projections[:args.log_count-counter_log].detach())
 
@@ -224,10 +265,11 @@ if __name__ == "__main__":
 
                 counter_log += min(len(grids_recon), args.log_count-counter_log)
 
-        # contrast_loss_agent /= (batch_id+1)
+        contrast_loss_agent /= (batch_id+1)
         # contrast_loss_env /= (batch_id+1)
         # cl_loss = args.nce_weight * (contrast_loss_agent + contrast_loss_env)
-        # cl_loss *= args.cl_weight
+        cl_loss = args.nce_weight * contrast_loss_agent
+        cl_loss *= args.cl_weight
 
         recon_loss_grid /= (batch_id+1)
         recon_loss_pos /= (batch_id+1)
@@ -249,24 +291,26 @@ if __name__ == "__main__":
         vae_loss = recon_loss + kl_loss
         vae_loss *= args.vae_weight
 
-        # loss = cl_loss + vae_loss
-        loss = vae_loss
+        loss = cl_loss + vae_loss
+        # loss = vae_loss
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         scheduler.step()
 
         ## log numbers to tensorboard
-        print('epoch {} loss {:.4f} (rec_env {:.4f} kl {:.4f} lr {:.4f})'.format(epoch, loss.item(), 
+        print('epoch {} loss {:.4f} (rec_env {:.4f} rec_pos {:.4f} kl {:.4f} cl {:.4f} lr {:.4f})'.format(epoch, loss.item(), 
                                                                                                         args.vae_weight*recon_loss_grid.item(),
+                                                                                                        args.vae_weight*recon_loss_pos.item(),
                                                                                                         args.vae_weight*kl_loss.item(),
+                                                                                                        cl_loss.item(),
                                                                                                         scheduler.get_last_lr()[0]
                                                                                                         ))
         writer.add_scalar('loss_total/train', loss.item(), epoch)
-        # writer.add_scalar('loss_cl/train', cl_loss.item(), epoch)
+        writer.add_scalar('loss_cl/train', cl_loss.item(), epoch)
         writer.add_scalar('loss_vae/train', vae_loss.item(), epoch)
         writer.add_scalar('loss_recon_grid/train', args.vae_weight*recon_loss_grid.item(), epoch)
-        # writer.add_scalar('loss_recon_pos/train', args.vae_weight*recon_loss_pos.item(), epoch)
+        writer.add_scalar('loss_recon_pos/train', args.vae_weight*recon_loss_pos.item(), epoch)
         writer.add_scalar('loss_kl/train', args.vae_weight*kl_loss.item(), epoch)
         writer.add_scalar('lr/train', scheduler.get_last_lr()[0], epoch)
 
@@ -274,8 +318,8 @@ if __name__ == "__main__":
         if logging:
             writer.add_images('truth_envs/train', torch.concat(log_grids_truth), epoch, dataformats='NCWH')
             writer.add_images('recon_envs/train', torch.concat(log_grids_recon), epoch, dataformats='NCWH')
-            # writer.add_images('truth_traces/train', torch.concat(log_poss_truth), epoch, dataformats='NCWH')
-            # writer.add_images('recon_traces/train', torch.concat(log_poss_recon), epoch, dataformats='NCWH')
+            writer.add_images('truth_traces/train', torch.concat(log_poss_truth), epoch, dataformats='NCWH')
+            writer.add_images('recon_traces/train', torch.concat(log_poss_recon), epoch, dataformats='NCWH')
             writer.add_embedding(torch.concat(log_embeds_enc), metadata=torch.concat(log_classes_agent).tolist(), global_step=epoch, tag='enc_embeds_agent_train')
             # writer.add_embedding(torch.concat(log_embeds_enc), metadata=torch.concat(log_classes_env).tolist(), global_step=epoch, tag='enc_embeds_env_train')
 
