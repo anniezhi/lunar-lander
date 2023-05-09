@@ -36,6 +36,8 @@ parser.add_argument("--num-samples", type=int, default=500,
                     help="number of samples of each model to load")
 parser.add_argument("--seq-length", type=int, default=20,
                     help="length of sequence for input")
+parser.add_argument("--data-root-dir", type=str, default=None,
+                    help="dir to data")
 parser.add_argument("--save-dir", type=str, default=None,
                     help="dir to save trained model")
 parser.add_argument("--epochs", type=int, default=100,
@@ -108,7 +110,11 @@ if __name__ == "__main__":
 
     for model_id, model in enumerate(args.models):
         # root_dir = os.getcwd() + '/lunar-lander/data_new/' + model + '/'
-        root_dir = os.getcwd() + '/lunar-lander/data_videos/' + model + '/'
+        if args.data_root_dir is None:
+            data_root_dir = os.getcwd() + '/lunar-lander/data_videos/'
+        else:
+            data_root_dir = args.data_root_dir
+        root_dir = data_root_dir + model + '/'
         # actions_file = 'actions.pkl'
         actions_file = 'actions.npz'
         grid_file = 'env_grids.npy'
