@@ -36,6 +36,8 @@ parser.add_argument("--num-samples", type=int, default=500,
                     help="number of samples of each model to load")
 parser.add_argument("--seq-length", type=int, default=20,
                     help="length of sequence for input")
+parser.add_argument("--sample-interleave", type=int, default=1,
+                    help="interleave of sampling during taking frames from video")
 parser.add_argument("--data-root-dir", type=str, default=None,
                     help="dir to data")
 parser.add_argument("--save-dir", type=str, default=None,
@@ -150,8 +152,8 @@ if __name__ == "__main__":
             #     remains.append(idx)
 
             frames = skvideo.io.vread(root_dir + file)
-            if len(frames) >= args.seq_length:
-                frames = frames[:args.seq_length]
+            if len(frames) >= args.seq_length * args.sample_interleave:
+                frames = frames[:args.seq_length*args.sample_interleave:args.sample_interleave]
                 frames = skimage.transform.resize(frames, (len(frames), ROWS, COLS, 3))
                 train_data.append(frames[None, :])
                 remains.append(idx)
@@ -164,7 +166,7 @@ if __name__ == "__main__":
         
         # agent_poss = agent_poss[remains] / 255.0
         # agent_poss = np.moveaxis(agent_poss, 3, 1)
-        agent_poss = np.stack([agent_poss[i][:args.seq_length] for i in remains])
+        agent_poss = np.stack([agent_poss[i][:args.seq_length*args.sample_interleave:args.sample_interleave] for i in remains])
         # convert to locations in resized image
         SCALE = 30
         # agent_poss = np.flip(agent_poss, -1) # swap y and x coordinates
@@ -182,7 +184,7 @@ if __name__ == "__main__":
                                     )
         agent_poss_imgs = np.moveaxis(agent_poss_imgs, 3, 1)
 
-        agent_actions = np.stack([agent_actions[i][:args.seq_length] for i in remains])
+        agent_actions = np.stack([agent_actions[i][:args.seq_length*args.sample_interleave:args.sample_interleave] for i in remains])
         agent_label = np.array([model_id] * len(remains))
         # agent_label = np.array([0]*len(train_data))
         # env_label = np.array([labels_dict_env[env_N]] * len(remains))
