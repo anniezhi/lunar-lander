@@ -88,6 +88,12 @@ if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     torch.manual_seed(args.seed)
 
+    # root_dir = os.getcwd() + '/lunar-lander/data_new/' + model + '/'
+    if args.data_root_dir is None:
+        data_root_dir = os.getcwd() + '/lunar-lander/data_videos/'
+    else:
+        data_root_dir = args.data_root_dir
+    
     save_dir = os.getcwd() + '/lunar-lander/saved/' + args.save_dir + '/'
     os.makedirs(os.path.dirname(save_dir), exist_ok=True)
 
@@ -111,11 +117,6 @@ if __name__ == "__main__":
     # labels_dict_env = dict(zip(props_env, list(range(len(props_env)))))
 
     for model_id, model in enumerate(args.models):
-        # root_dir = os.getcwd() + '/lunar-lander/data_new/' + model + '/'
-        if args.data_root_dir is None:
-            data_root_dir = os.getcwd() + '/lunar-lander/data_videos/'
-        else:
-            data_root_dir = args.data_root_dir
         root_dir = data_root_dir + model + '/'
         # actions_file = 'actions.pkl'
         actions_file = 'actions.npz'
