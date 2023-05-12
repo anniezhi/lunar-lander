@@ -51,13 +51,15 @@ class Decoder2d(nn.Module):
         super(Decoder2d, self).__init__()
         self.in_channels = in_channels
         self.head = nn.Linear(in_dims, in_channels*(32**2))
-        self.convt1 = nn.ConvTranspose2d(in_channels, hidden_channels, kernel_size=2, stride=2)
+        self.convt0 = nn.ConvTranspose2d(in_channels, hidden_channels, kernel_size=1, stride=1)
+        self.convt1 = nn.ConvTranspose2d(hidden_channels, hidden_channels, kernel_size=2, stride=2)
         self.convt2 = nn.ConvTranspose2d(hidden_channels, out_channels, kernel_size=2, stride=2)
         
     def forward(self, x):
         x = self.head(x)
         x = x.reshape(x.shape[0],self.in_channels, 32, 32)
-        out = F.relu(self.convt1(x))
+        out = F.relu(self.convt0(x))
+        out = F.relu(self.convt1(out))
         out = torch.sigmoid(self.convt2(out))
         return out
 
