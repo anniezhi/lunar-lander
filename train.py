@@ -106,16 +106,6 @@ if __name__ == "__main__":
     datasets = []
     ROWS, COLS = 128, 128
 
-    # props_agent = set()
-    # props_env = set()
-    # for model in args.models:
-    #     agent_v = int(re.search(r"(?<=v)\d+", model).group())
-    #     props_agent.add(agent_v)
-    #     env_N = int(re.search(r"(?<=N)\d+", model).group())
-    #     props_env.add(env_N)
-    # labels_dict_agent = dict(zip(props_agent, list(range(len(props_agent)))))
-    # labels_dict_env = dict(zip(props_env, list(range(len(props_env)))))
-
     for model_id, model in enumerate(args.models):
         root_dir = data_root_dir + model + '/'
         # actions_file = 'actions.pkl'
@@ -332,14 +322,22 @@ if __name__ == "__main__":
             writer.add_embedding(torch.concat(log_embeds_enc), metadata=torch.concat(log_classes_agent).tolist(), global_step=epoch, tag='enc_embeds_agent_train')
             # writer.add_embedding(torch.concat(log_embeds_enc), metadata=torch.concat(log_classes_env).tolist(), global_step=epoch, tag='enc_embeds_env_train')
 
-        ## save checkpoint
-        # if loss <= min_loss:
-        #     min_loss = loss
-        #     torch.save({'epoch': epoch,
-        #                 'model_state_dict': model.state_dict(),
-        #                 'optimizer_state_dict': optimizer.state_dict(),
-        #                 'scheduler_state_dict': scheduler.state_dict(),
-        #                 'loss': loss,
-        #     }, save_dir+'best_model.pt')
+        # save checkpoint
+        if loss <= min_loss:
+            min_loss = loss
+            torch.save({'epoch': epoch,
+                        'model_state_dict': model.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        'scheduler_state_dict': scheduler.state_dict(),
+                        'loss': loss,
+            }, save_dir+'best_model.pt')
+
+    ## save checkpoint
+    torch.save({'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'scheduler_state_dict': scheduler.state_dict(),
+                'loss': loss,
+    }, save_dir+'last_model.pt')
 
     writer.close()
