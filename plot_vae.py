@@ -145,7 +145,6 @@ if __name__ == "__main__":
         recon_loss_pos += criterion(agent_poss, agent_poss_recon)
         
         ## save images
-        ## TODO: check forms here
         grids_recon = grids_recon.detach().permute(0,2,3,1).numpy()
         grids_recon = np.around(grids_recon * 255).astype(np.uint8)
         
