@@ -171,7 +171,8 @@ if __name__ == "__main__":
         for i, poss in enumerate(agent_poss):
             for t in range(len(poss)):
                 circle = cv2.circle(agent_poss_imgs[i], center=poss[t], 
-                                    radius=3, color=(128/255, 102/255, 230/255), 
+                                    radius=3, color=(128/255, 102/255, 230/255),
+                                    thickness=-1
                                     )
         agent_poss_imgs = np.moveaxis(agent_poss_imgs, 3, 1)
 

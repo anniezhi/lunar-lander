@@ -12,7 +12,6 @@ import cv2
 from PIL import Image
 import skvideo.io
 from model import *
-from data_utils import *
 
 tf.io.gfile = tb.compat.tensorflow_stub.io.gfile
 
@@ -108,14 +107,15 @@ if __name__ == "__main__":
     for i, poss in enumerate(agent_poss):
             for t in range(len(poss)):
                 circle = cv2.circle(agent_poss_imgs[i], center=poss[t], 
-                                    radius=3, color=(128/255, 102/255, 230/255), 
+                                    radius=3, color=(128/255, 102/255, 230/255),
+                                    thickness=-1
                                     )
     agent_poss_imgs = np.moveaxis(agent_poss_imgs, 3, 1)
     agent_actions = np.stack([agent_actions[i][:args.seq_length*args.sample_interleave:args.sample_interleave] for i in remains])    
 
     dataset = TensorDataset(torch.tensor(test_data,dtype=torch.float32,device=device), 
                             torch.tensor(truth_data,dtype=torch.float32,device=device), 
-                            torch.tensor(agent_poss,dtype=torch.float32,device=device),
+                            torch.tensor(agent_poss_imgs,dtype=torch.float32,device=device),
                             torch.tensor(agent_actions,dtype=torch.float32,device=device),
                             torch.tensor(remains,dtype=torch.int,device=device)
                             )
@@ -138,7 +138,7 @@ if __name__ == "__main__":
 
     for batch_id, batch_data in enumerate(dataloader):
         
-        seqs_test, grids_truth, agent_poss, ids = batch_data
+        seqs_test, grids_truth, agent_poss, agent_actions, ids = batch_data
         grids_recon, agent_poss_recon, mu, logvar, projections = model_VAE(seqs_test)
 
         recon_loss_grid += criterion(grids_truth, grids_recon)
