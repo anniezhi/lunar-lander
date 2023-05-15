@@ -25,6 +25,8 @@ parser.add_argument("--data-root-dir", type=str, default=None,
                     help="dir to data")
 parser.add_argument("--num-samples", type=int, default=100,
                     help="number of samples to load")
+parser.add_argument("--start-sample", type=int, default=0,
+                    help="frame to start sampling")
 parser.add_argument("--sample-interleave", type=int, default=1,
                     help="interleave of sampling during taking frames from video")
 parser.add_argument("--seq-length", type=int, default=20,
@@ -78,8 +80,8 @@ if __name__ == "__main__":
     for idx, file in [*zip(sample_ids, gif_files)]:
     # for idx, file in enumerate(gif_files):
         frames = skvideo.io.vread(data_dir + file)
-        if len(frames) >= args.seq_length * args.sample_interleave:
-            frames = frames[:args.seq_length*args.sample_interleave:args.sample_interleave]
+        if len(frames) >= args.start_sample + args.seq_length * args.sample_interleave:
+            frames = frames[args.start_sample:args.start_sample+args.seq_length*args.sample_interleave:args.sample_interleave]
             frames = skimage.transform.resize(frames, (len(frames), ROWS, COLS, 3))
             test_data.append(frames[None, :])
             remains.append(idx)
@@ -94,7 +96,7 @@ if __name__ == "__main__":
     truth_data = skimage.transform.resize(truth_data[remains], (len(remains), ROWS, COLS, 3))
     truth_data = np.moveaxis(truth_data, 3, 1)
     
-    agent_poss = np.stack([agent_poss[i][:args.seq_length*args.sample_interleave:args.sample_interleave] for i in remains])
+    agent_poss = np.stack([agent_poss[i][args.start_sample:args.start_sample+args.seq_length*args.sample_interleave:args.sample_interleave] for i in remains])
     # convert to locations in resized image
     SCALE = 30
     agent_poss[...,1] = 400-agent_poss[...,1]*SCALE
@@ -111,7 +113,7 @@ if __name__ == "__main__":
                                     thickness=-1
                                     )
     agent_poss_imgs = np.moveaxis(agent_poss_imgs, 3, 1)
-    agent_actions = np.stack([agent_actions[i][:args.seq_length*args.sample_interleave:args.sample_interleave] for i in remains])    
+    agent_actions = np.stack([agent_actions[i][args.start_sample:args.start_sample+args.seq_length*args.sample_interleave:args.sample_interleave] for i in remains])    
 
     dataset = TensorDataset(torch.tensor(test_data,dtype=torch.float32,device=device), 
                             torch.tensor(truth_data,dtype=torch.float32,device=device), 
