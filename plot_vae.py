@@ -23,6 +23,12 @@ parser.add_argument("--agent-model", type=str, default=None,
                     help="names of the trained agent model")
 parser.add_argument("--data-root-dir", type=str, default=None,
                     help="dir to data")
+parser.add_argument("--mode", type=str, default='train', choices=['train', 'test'],
+                    help="train mode and test mode load different videos")
+parser.add_argument("--best-model", default=False, action='store_true',
+                    help="use best vae model if True, otherwise use last model")
+parser.add_argument("--first-sample", type=int, default=0,
+                    help="first sample id to load")
 parser.add_argument("--num-samples", type=int, default=100,
                     help="number of samples to load")
 parser.add_argument("--start-sample", type=int, default=0,
@@ -73,7 +79,7 @@ if __name__ == "__main__":
     agent_actions = [agent_actions[_] for _ in [*agent_actions]]
 
     # sample_ids = random.sample(range(len(truth_data)), int(args.num_samples*1.5))
-    sample_ids = [i for i in range(args.num_samples)]
+    sample_ids = [i+args.first_sample for i in range(args.num_samples)]
     gif_files = [f'final-model-ppo-LunarLander-v2-{args.agent_model}-{i}.mp4' for i in sample_ids]
     test_data = []
     remains = []
@@ -126,7 +132,10 @@ if __name__ == "__main__":
 
     ## load trained VAE model
     model_VAE = RLNetwork(ROWS, COLS, 3, 16, 4, 16)
-    checkpoint = torch.load(model_dir + 'last_model.pt', map_location=torch.device(device))
+    if args.best_model:
+        checkpoint = torch.load(model_dir + 'best_model.pt', map_location=torch.device(device))
+    else:
+        checkpoint = torch.load(model_dir + 'last_model.pt', map_location=torch.device(device))
     model_VAE.load_state_dict(checkpoint['model_state_dict'])
     model_VAE.to(device)
     # model_VAE.eval()
@@ -177,7 +186,7 @@ if __name__ == "__main__":
 
     ## save embeddings
     embeds = np.concatenate(log_embeds_enc)
-    np.save(save_dir+'embeddings.npy', embeds)
+    np.save(save_dir+'embeddings-'+args.mode+'.npy', embeds)
 
     recon_loss_grid /= len(dataset)
     recon_loss_pos /= len(dataset)
@@ -187,7 +196,7 @@ if __name__ == "__main__":
     print('recon MSE loss pos: ', recon_loss_pos)
 
     ## log key information to txt
-    with open(save_dir+'info.txt', 'w') as f:
+    with open(save_dir+'info-'+args.mode+'.txt', 'w') as f:
         f.write(f'VAE model: {args.vae_model}\n')
         f.write(f'agent model: {args.agent_model}\n')
         f.write(f'number of valid samples: {len(remains)}\n')
