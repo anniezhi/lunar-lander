@@ -138,7 +138,7 @@ if __name__ == "__main__":
         checkpoint = torch.load(model_dir + 'last_model.pt', map_location=torch.device(device))
     model_VAE.load_state_dict(checkpoint['model_state_dict'])
     model_VAE.to(device)
-    model_VAE.eval()
+    # model_VAE.eval()
     
     criterion = nn.MSELoss(reduction='sum')
 
