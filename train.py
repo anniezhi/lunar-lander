@@ -275,7 +275,7 @@ if __name__ == "__main__":
 
         recon_loss_grid /= (batch_id+1)
         recon_loss_pos /= (batch_id+1)
-        recon_loss = recon_loss_grid + recon_loss_pos
+        recon_loss = recon_loss_grid + 1.5*recon_loss_pos
 
         kl_loss /= (batch_id+1)
         if args.kld_weight_anneal == 'simple':
