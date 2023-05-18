@@ -1,5 +1,5 @@
 import torch
-import torch.nn as nn
+# import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 import tensorflow as tf
@@ -8,15 +8,15 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader, RandomSampler, ConcatDataset, TensorDataset
 import argparse
 import os
-import re
+# import re
 import numpy as np
-from PIL import Image
+# from PIL import Image
 import cv2
 import skimage
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+# import matplotlib.pyplot as plt
+# import matplotlib.patches as patches
 import skvideo.io
-import pickle
+# import pickle
 from math import ceil
 from model import *
 
@@ -129,7 +129,9 @@ if __name__ == "__main__":
     
         # gif_files = [f'{i}.gif' for i in range(args.num_samples)]
         gif_files = [f'final-model-ppo-LunarLander-v2-{model}-{i}.mp4' for i in range(args.num_samples)]
-        train_data = []
+        train_data_front = []
+        train_data_mid = []
+        train_data_back = []
         remains = []
         for idx, file in enumerate(gif_files):
             print(f'loading gif {idx} / {len(gif_files)}')
@@ -145,15 +147,28 @@ if __name__ == "__main__":
             #     remains.append(idx)
 
             frames = skvideo.io.vread(root_dir + file)
-            if len(frames) >= args.start_sample + args.seq_length * args.sample_interleave:
-                frames = frames[args.start_sample:args.start_sample+args.seq_length*args.sample_interleave:args.sample_interleave]
-                frames = skimage.transform.resize(frames, (len(frames), ROWS, COLS, 3))
-                train_data.append(frames[None, :])
+            frames_len = len(frames)
+            if frames_len >= args.start_sample + args.seq_length * args.sample_interleave:
                 remains.append(idx)
-        
-        train_data = np.concatenate(train_data)
-        train_data = np.moveaxis(train_data, 4, 1)
-        # truth_data = train_data.mean(2)
+                frames_front = frames[args.start_sample:args.start_sample+args.seq_length*args.sample_interleave:args.sample_interleave]
+                frames_front = skimage.transform.resize(frames_front, (len(frames_front), ROWS, COLS, 3))
+                train_data_front.append(frames_front[None, :])
+                frames_back = frames[-args.seq_length*args.sample_interleave-1:-2:args.sample_interleave]
+                frames_back = skimage.transform.resize(frames_back, (len(frames_back), ROWS, COLS, 3))
+                train_data_back.append(frames_back[None, :])
+                frames_mid = frames[int(frames_len/2-args.seq_length*args.sample_interleave/2):int(frames_len/2+args.seq_length*args.sample_interleave/2):args.sample_interleave]
+                frames_mid = skimage.transform.resize(frames_mid, (len(frames_mid), ROWS, COLS, 3))
+                train_data_mid.append(frames_mid[None, :])
+                
+        train_data_front = np.concatenate(train_data_front)
+        train_data_front = np.moveaxis(train_data_front, 4, 1)
+        train_data_mid = np.concatenate(train_data_mid)
+        train_data_mid = np.moveaxis(train_data_mid, 4, 1)
+        train_data_back = np.concatenate(train_data_back)
+        train_data_back = np.moveaxis(train_data_back, 4, 1)
+        train_data = np.concatenate([train_data_front, train_data_mid, train_data_back])
+
+        ## TODO
         truth_data = skimage.transform.resize(truth_data[remains], (len(remains), ROWS, COLS, 3))
         truth_data = np.moveaxis(truth_data, 3, 1)
         
