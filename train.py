@@ -110,8 +110,7 @@ if __name__ == "__main__":
 
     for model_id, model in enumerate(args.models):
         root_dir = data_root_dir + model + '/'
-        # actions_file = 'actions.pkl'
-        actions_file = 'actions.npz'
+        # actions_file = 'actions.npz'
         grid_file = 'env_grids.npy'
         agent_poss_file = 'agent_poss.npz'
         
@@ -121,11 +120,8 @@ if __name__ == "__main__":
         agent_poss = np.load(root_dir+agent_poss_file)
         agent_poss = [agent_poss[_] for _ in [*agent_poss]]
 
-        # with open(root_dir+actions_file, 'rb') as f:
-        #     agent_actions = pickle.load(f)
-
-        agent_actions = np.load(root_dir+actions_file)
-        agent_actions = [agent_actions[_] for _ in [*agent_actions]]
+        # agent_actions = np.load(root_dir+actions_file)
+        # agent_actions = [agent_actions[_] for _ in [*agent_actions]]
     
         # gif_files = [f'{i}.gif' for i in range(args.num_samples)]
         gif_files = [f'final-model-ppo-LunarLander-v2-{model}-{i}.mp4' for i in range(args.num_samples)]
@@ -168,16 +164,18 @@ if __name__ == "__main__":
         train_data_back = np.moveaxis(train_data_back, 4, 1)
         train_data = np.concatenate([train_data_front, train_data_mid, train_data_back])
 
-        ## TODO
         truth_data = skimage.transform.resize(truth_data[remains], (len(remains), ROWS, COLS, 3))
         truth_data = np.moveaxis(truth_data, 3, 1)
+        truth_data = np.tile(truth_data, (3, 1, 1, 1))
         
         # agent_poss = agent_poss[remains] / 255.0
         # agent_poss = np.moveaxis(agent_poss, 3, 1)
-        agent_poss = np.stack([agent_poss[i][args.start_sample:args.start_sample+args.seq_length*args.sample_interleave:args.sample_interleave] for i in remains])
+        agent_poss_front = np.stack([agent_poss[i][args.start_sample:args.start_sample+args.seq_length*args.sample_interleave:args.sample_interleave] for i in remains])
+        agent_poss_mid = np.stack([agent_poss[i][int(len(agent_poss[i])/2-args.seq_length*args.sample_interleave/2):int(len(agent_poss[i])/2+args.seq_length*args.sample_interleave/2):args.sample_interleave] for i in remains])
+        agent_poss_back = np.stack([agent_poss[i][-args.seq_length*args.sample_interleave-1:-2:args.sample_interleave] for i in remains])
         # convert to locations in resized image
         SCALE = 30
-        # agent_poss = np.flip(agent_poss, -1) # swap y and x coordinates
+        agent_poss = np.concatenate([agent_poss_front, agent_poss_mid, agent_poss_back])
         agent_poss[...,1] = 400-agent_poss[...,1]*SCALE
         agent_poss[...,0] = agent_poss[...,0]*SCALE
         agent_poss[...,1] *= ROWS / 400
@@ -193,21 +191,26 @@ if __name__ == "__main__":
                                     )
         agent_poss_imgs = np.moveaxis(agent_poss_imgs, 3, 1)
 
-        agent_actions = np.stack([agent_actions[i][args.start_sample:args.start_sample+args.seq_length*args.sample_interleave:args.sample_interleave] for i in remains])
-        agent_label = np.array([model_id] * len(remains))
-        # agent_label = np.array([0]*len(train_data))
-        # env_label = np.array([labels_dict_env[env_N]] * len(remains))
+        # agent_actions_front = np.stack([agent_actions[i][args.start_sample:args.start_sample+args.seq_length*args.sample_interleave:args.sample_interleave] for i in remains])
+        # agent_actions_mid = np.stack([agent_actions[i][int(len(agent_actions[i])/2-args.seq_length*args.sample_interleave/2):int(len(agent_actions[i])/2+args.seq_length*args.sample_interleave/2):args.sample_interleave] for i in remains])
+        # agent_actions_back = np.stack([agent_actions[i][-args.seq_length*args.sample_interleave-1:-2:args.sample_interleave] for i in remains])
+        # agent_actions = np.concatenate([agent_actions_front, agent_actions_mid, agent_actions_back])
 
+        agent_label = np.array([model_id] * len(remains) * 3)
+
+        print(f'model {model} is assigned id {model_id}')
+        print(f'length of model dataset {len(remains) * 3}')
+        
         datasets.append(TensorDataset(torch.tensor(train_data,dtype=torch.float32,device=device), 
                                       torch.tensor(truth_data,dtype=torch.float32,device=device), 
                                       torch.tensor(agent_poss_imgs,dtype=torch.float32,device=device), 
-                                      torch.tensor(agent_actions,dtype=torch.float32,device=device), 
+                                    #   torch.tensor(agent_actions,dtype=torch.float32,device=device), 
                                       torch.tensor(agent_label,device=device),
                                     #   torch.tensor(env_label,device=device)
                         ))
     
     dataset = ConcatDataset(datasets)
-    print(f'length of dataset {len(dataset)}')
+    print(f'length of full dataset {len(dataset)}')
     # sampler = RandomSampler(dataset, replacement=True, num_samples=args.epoch_size)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, num_workers=0, shuffle=True)
 
@@ -247,8 +250,8 @@ if __name__ == "__main__":
             log_poss_truth = []
             log_poss_recon = []
 
-            log_actions_truth = []
-            log_actions_recon = []
+            # log_actions_truth = []
+            # log_actions_recon = []
 
             log_embeds_enc = []
             log_classes_agent = []
@@ -256,7 +259,8 @@ if __name__ == "__main__":
 
         for batch_id, batch_data in enumerate(dataloader):
             
-            seqs_train, grids_truth, poss_truth, agent_actions, agent_class = batch_data
+            # seqs_train, grids_truth, poss_truth, agent_actions, agent_class = batch_data
+            seqs_train, grids_truth, poss_truth, agent_class = batch_data
             grids_recon, poss_recon, mu, logvar, projections = model(seqs_train)
 
             recon_loss_grid += recon_loss_func(grids_truth, grids_recon)
