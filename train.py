@@ -38,6 +38,8 @@ parser.add_argument("--seq-length", type=int, default=20,
                     help="length of sequence for input")
 parser.add_argument("--start-sample", type=int, default=0,
                     help="frame to start sampling")
+parser.add_argument("--first-sample", type=int, default=0,
+                    help="first sample id to load")
 parser.add_argument("--sample-interleave", type=int, default=1,
                     help="interleave of sampling during taking frames from video")
 parser.add_argument("--data-root-dir", type=str, default=None,
@@ -82,6 +84,10 @@ parser.add_argument("--recon-loss", type=str, default='mse', choices=['mse', 'hu
                     help="loss function for reconstruction, options [mse, huber]")
 parser.add_argument("--milestones", nargs='+', type=int, default=[600],
                     help="milestones to decrease learning rate")
+parser.add_argument("--continue-training", default=False, action='store_true',
+                    help="continue training from last saved model")
+parser.add_argument("--continue-from-best", default=False, action='store_true',
+                    help="use best vae model when continue training if True, otherwise use last model")
 
 
 if __name__ == "__main__":
@@ -123,8 +129,8 @@ if __name__ == "__main__":
         # agent_actions = np.load(root_dir+actions_file)
         # agent_actions = [agent_actions[_] for _ in [*agent_actions]]
     
-        # gif_files = [f'{i}.gif' for i in range(args.num_samples)]
-        gif_files = [f'final-model-ppo-LunarLander-v2-{model}-{i}.mp4' for i in range(args.num_samples)]
+        sample_ids = [i+args.first_sample for i in range(args.num_samples)]
+        gif_files = [f'final-model-ppo-LunarLander-v2-{model}-{i}.mp4' for i in sample_ids]
         train_data_front = []
         train_data_mid = []
         train_data_back = []
@@ -212,11 +218,22 @@ if __name__ == "__main__":
     dataset = ConcatDataset(datasets)
     print(f'length of full dataset {len(dataset)}')
     # sampler = RandomSampler(dataset, replacement=True, num_samples=args.epoch_size)
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, num_workers=0, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=args.batch_size, num_workers=0, shuffle=True, drop_last=True)
 
     # model = RLNetwork(ROWS, COLS, 3, 4, 16)
     model = RLNetwork(ROWS, COLS, 3, 16, 4, 16)
-    model.to(device)
+    if args.continue_training:
+        if args.continue_from_best:
+            checkpoint = torch.load(save_dir + 'best_model.pt', map_location=torch.device(device))
+        else:
+            checkpoint = torch.load(save_dir + 'last_model.pt', map_location=torch.device(device))
+        model.load_state_dict(checkpoint['model_state_dict'])
+        epoch_start = checkpoint['epoch']+1
+        min_loss = checkpoint['loss']
+    else:
+        model.to(device)
+        epoch_start = 0
+        min_loss = 1e4
     model.train()
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -229,9 +246,7 @@ if __name__ == "__main__":
     elif args.recon_loss == 'huber':
         recon_loss_func = F.huber_loss
 
-    min_loss = 1e4
-
-    for epoch in range(args.epochs):
+    for epoch in range(epoch_start, epoch_start+args.epochs):
 
         # contrast_loss_env = 0
         contrast_loss_agent = 0
