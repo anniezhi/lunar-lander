@@ -135,8 +135,8 @@ if __name__ == "__main__":
         train_data_mid = []
         train_data_back = []
         remains = []
-        for idx, file in enumerate(gif_files):
-            print(f'loading gif {idx} / {len(gif_files)}')
+        for idx, file in [*zip(sample_ids, gif_files)]:
+            print(f'loading gif {idx} / {args.first_sample} - {args.first_sample+len(gif_files)}')
             # frames = []
             # im = Image.open(root_dir + 'gifs/' + file)
             # for t in range(im.n_frames):
