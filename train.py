@@ -231,9 +231,9 @@ if __name__ == "__main__":
         epoch_start = checkpoint['epoch']+1
         min_loss = checkpoint['loss']
     else:
-        model.to(device)
         epoch_start = 0
         min_loss = 1e4
+    model.to(device)
     model.train()
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
