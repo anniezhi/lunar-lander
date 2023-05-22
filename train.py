@@ -72,6 +72,8 @@ parser.add_argument("--prop-anneal", type=float, default=0.6,
                     help="proportion within a cycle to have increasing KLD loss weight (default: 0.6)")
 parser.add_argument("--nce-weight", type=float, default=0.005,
                     help="nce weight in CL loss (default: 0.05)")
+parser.add_argument("--loss-pos-factor", type=float, default=1.0,
+                    help="Factor for pos loss (default: 1.0)")
 parser.add_argument("--seed", type=int, default=1265,
                     help="random seed (default: 1265)")
 parser.add_argument("--weight-decay", type=float, default=0.0,
@@ -309,7 +311,7 @@ if __name__ == "__main__":
 
         recon_loss_grid /= (batch_id+1)
         recon_loss_pos /= (batch_id+1)
-        recon_loss = recon_loss_grid + recon_loss_pos
+        recon_loss = (2-args.loss_pos_factor) * recon_loss_grid + args.loss_pos_factor * recon_loss_pos
 
         kl_loss /= (batch_id+1)
         if args.kld_weight_anneal == 'simple':
