@@ -168,3 +168,32 @@ class NCELoss(nn.Module):
         #     return self.loss_2(projs, labels, unique_labels)
         # else:
         return self.loss_multi(projs, labels, unique_labels)
+    
+class MLPNetwork(nn.Module):
+    def __init__(self, in_dims, out_dims_agent_type, out_dims_action, 
+                 hidden_dims, conv_channels_in, conv_channels_hidden, 
+                 num_discount=3, image_size=64) -> None:
+        super(MLPNetwork, self).__init__()
+        self.linear_1 = nn.Linear(in_dims, hidden_dims)
+        self.linear_2 = nn.Linear(hidden_dims, hidden_dims)
+        self.head_agent_type = nn.Linear(hidden_dims, out_dims_agent_type)
+        self.head_action = nn.Linear(hidden_dims, out_dims_action)
+        self.head_sr_1 = nn.Linear(hidden_dims, conv_channels_in*image_size*image_size)
+        self.conv_channels_in = conv_channels_in
+        self.image_size = image_size
+        self.head_sr_2 = nn.Sequential(
+            nn.Conv2d(conv_channels_in, conv_channels_hidden, kernel_size=1, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(conv_channels_hidden, num_discount, kernel_size=1, stride=1),
+            # nn.Softmax(dim=1),
+        )
+
+    def forward(self, x):
+        x = F.relu(self.linear_1(x))
+        x = F.relu(self.linear_2(x))
+        pred_agent_type = F.softmax(self.head_agent_type(x), dim=1)
+        pred_action = F.softmax(self.head_action(x), dim=1)
+        pred_sr = F.relu(self.head_sr_1(x)).view(-1, self.conv_channels_in, self.image_size, self.image_size)
+        pred_sr = self.head_sr_2(pred_sr)
+        pred_sr = F.softmax(pred_sr.reshape(pred_sr.size(0), pred_sr.size(1), -1), 2).view_as(pred_sr)
+        return pred_agent_type, pred_action, pred_sr
