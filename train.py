@@ -49,7 +49,7 @@ parser.add_argument("--save-dir", type=str, default=None,
 parser.add_argument("--epochs", type=int, default=100,
                     help="epoch number for trianing")
 parser.add_argument("--epoch-size", type=int, default=20,
-                    help="total episode number for trianing per epoch")
+                    help="total episode number for training per epoch")
 parser.add_argument("--batch-size", type=int, default=5,
                     help="batch size for trianing")
 parser.add_argument("--log-interval", type=int, default=10,
