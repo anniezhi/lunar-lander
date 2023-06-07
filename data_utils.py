@@ -65,13 +65,19 @@ class VideoDataset(Dataset):
     
     def __getitem__(self, index):
         sequence = self.frames[index]
-        seq_len = sequence.shape[1]
         grid = self.grids[index]
         agent_poss = self.agent_poss[index]
         agent_poss[...,1] = (400-agent_poss[...,1]*self.SCALE) * self.ROWS/400
         agent_poss[...,0] = agent_poss[...,0]*self.SCALE * self.COLS/600
         agent_poss = agent_poss.type(torch.int64)
         actions = self.agent_actions[index]
+
+        if sequence.shape[1] != len(agent_poss):
+            cutoff = min(sequence.shape[1], len(agent_poss))
+            sequence = sequence[:,:cutoff]
+            agent_poss = agent_poss[:cutoff]
+            actions = actions[:cutoff]
+        seq_len = sequence.shape[1]
 
         truncate_left = random.randrange(seq_len)
         truncate_right = min(seq_len-self.sample_interleave, truncate_left + self.seq_len*self.sample_interleave)
@@ -82,7 +88,11 @@ class VideoDataset(Dataset):
         action = actions[truncate_right]
 
         target_sr = torch.zeros_like(sequence[:,0], device=device).permute(1,2,0)
-                
+        
+        # print(f'shape  \
+        #         {agent_poss.shape}  \
+        #         {[i for i in range(truncate_right-self.sample_interleave, seq_len, self.sample_interleave)][0]}   \
+        #         {[i for i in range(truncate_right-self.sample_interleave, seq_len, self.sample_interleave)][-1]}')
         for step in range(truncate_right-self.sample_interleave, seq_len, self.sample_interleave):
             state = torch.zeros(self.ROWS, self.COLS, len(self.gamma), device=device)
             state[max(agent_poss[step,1]-2,0):min(agent_poss[step,1]+2, self.ROWS), 
