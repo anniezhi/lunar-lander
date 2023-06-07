@@ -132,7 +132,7 @@ if __name__ == "__main__":
     dataset_train, dataset_val = torch.utils.data.random_split(dataset, [train_size, val_size], generator=generator)
     print('val ids: ', dataset_val.indices, '\n')
     dataloader_train = DataLoader(dataset_train, batch_size=args.batch_size, num_workers=0, shuffle=True)
-    dataloader_val = DataLoader(dataset_val, batch_size=len(dataset_val), num_workers=0, shuffle=True)
+    dataloader_val = DataLoader(dataset_val, batch_size=len(dataset_val), num_workers=0, shuffle=False)
     # dataset_train = dataset
     # dataloader_train = DataLoader(dataset_train, batch_size=args.batch_size, num_workers=0, shuffle=True)
 
