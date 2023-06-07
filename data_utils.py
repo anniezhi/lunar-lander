@@ -84,7 +84,7 @@ class VideoDataset(Dataset):
         target_sr = torch.zeros_like(sequence[:,0], device=device).permute(1,2,0)
                 
         for step in range(truncate_right-self.sample_interleave, seq_len, self.sample_interleave):
-            state = torch.zeros(self.ROWS, self.COLS, len(self.gamma))
+            state = torch.zeros(self.ROWS, self.COLS, len(self.gamma), device=device)
             state[max(agent_poss[step,1]-2,0):min(agent_poss[step,1]+2, self.ROWS), 
                   max(agent_poss[step,0]-1,0):min(agent_poss[step,0]+2, self.ROWS), 
                       :] = 1
