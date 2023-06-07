@@ -21,7 +21,7 @@ class VideoDataset(Dataset):
         self.start_sample = start_sample
         self.sample_interleave = sample_interleave
         self.seq_len = seq_len
-        self.min_len = self.seq_len + 1
+        self.min_len = self.seq_len + sample_interleave
         self.ROWS = ROWS
         self.COLS = COLS
         self.SCALE = 30
