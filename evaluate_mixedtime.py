@@ -149,7 +149,8 @@ if __name__ == "__main__":
     ## define downstream MLP model
     model_MLP = MLPNetwork(in_dims=200, hidden_dims=128,
                            out_dims_agent_type=2, out_dims_action=4,
-                           conv_channels_in=3, conv_channels_hidden=8)
+                           conv_channels_in=3, conv_channels_hidden=8,
+                           image_size=ROWS)
     model_MLP.to(device)
     model_MLP.train()
 
