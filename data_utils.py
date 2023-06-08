@@ -66,16 +66,17 @@ class VideoDataset(Dataset):
     def __getitem__(self, index):
         sequence = self.frames[index]
         grid = self.grids[index]
-        agent_poss = self.agent_poss[index]
-        agent_poss[...,1] = (400-agent_poss[...,1]*self.SCALE) * self.ROWS/400
-        agent_poss[...,0] = agent_poss[...,0]*self.SCALE * self.COLS/600
-        agent_poss = agent_poss.type(torch.int64)
+        poss = self.agent_poss[index].clone()
+        poss[...,1] = (400-poss[...,1]*self.SCALE) * self.ROWS/400
+        poss[...,0] = poss[...,0]*self.SCALE * self.COLS/600
+        poss = poss.type(torch.int64)
+        # poss = poss.int()
         actions = self.agent_actions[index]
 
-        if sequence.shape[1] != len(agent_poss):
-            cutoff = min(sequence.shape[1], len(agent_poss))
+        if sequence.shape[1] != len(poss):
+            cutoff = min(sequence.shape[1], len(poss))
             sequence = sequence[:,:cutoff]
-            agent_poss = agent_poss[:cutoff]
+            poss = poss[:cutoff]
             actions = actions[:cutoff]
         seq_len = sequence.shape[1]
 
@@ -95,8 +96,8 @@ class VideoDataset(Dataset):
         #         {[i for i in range(truncate_right-self.sample_interleave, seq_len, self.sample_interleave)][-1]}')
         for step in range(truncate_right-self.sample_interleave, seq_len, self.sample_interleave):
             state = torch.zeros(self.ROWS, self.COLS, len(self.gamma), device=device)
-            state[max(agent_poss[step,1]-2,0):min(agent_poss[step,1]+2, self.ROWS), 
-                  max(agent_poss[step,0]-1,0):min(agent_poss[step,0]+2, self.ROWS), 
+            state[max(poss[step,1]-2,0):min(poss[step,1]+2,self.ROWS), 
+                  max(poss[step,0]-1,0):min(poss[step,0]+2,self.ROWS), 
                       :] = 1
             target_sr += (self.gamma**((step-(truncate_right-self.sample_interleave))//self.sample_interleave)) * state
             # target_sr[idx,:,query_agent_pos[idx,step,0],query_agent_pos[idx,step,1]] += gamma**(step-length_recent[idx])
