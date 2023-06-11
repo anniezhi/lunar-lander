@@ -48,6 +48,8 @@ parser.add_argument("--cols", type=int, default=64,
                     help="cols of resized image")
 parser.add_argument("--data-root-dir", type=str, default=None,
                     help="dir to data")
+parser.add_argument("--save-root-dir", type=str, default=None,
+                    help="dir to saved models")
 parser.add_argument("--save-dir", type=str, default=None,
                     help="dir to save trained model")
 parser.add_argument("--epochs", type=int, default=100,
@@ -108,7 +110,10 @@ if __name__ == "__main__":
     else:
         data_root_dir = args.data_root_dir
     
-    save_dir = os.getcwd() + '/lunar-lander/saved/' + args.save_dir + '/'
+    if args.save_root_dir is None:
+        save_dir = os.getcwd() + '/lunar-lander/saved/' + args.save_dir + '/'
+    else:
+        save_dir = args.save_root_dir + args.save_dir
     os.makedirs(os.path.dirname(save_dir), exist_ok=True)
 
     writer = SummaryWriter(log_dir=save_dir)
