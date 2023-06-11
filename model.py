@@ -47,17 +47,20 @@ class Encoder3d(nn.Module):
         return x
         
 class Decoder2d(nn.Module):
-    def __init__(self, in_dims, in_channels, hidden_channels, out_channels):
+    def __init__(self, rows, in_dims, in_channels, hidden_channels, out_channels):
         super(Decoder2d, self).__init__()
         self.in_channels = in_channels
-        self.head = nn.Linear(in_dims, in_channels*(32**2))
+        self.rows = rows
+        # self.head = nn.Linear(in_dims, in_channels*(32**2))
+        self.head = nn.Linear(in_dims, in_channels*(int(rows/4)**2))
         self.convt0 = nn.ConvTranspose2d(in_channels, hidden_channels, kernel_size=1, stride=1)
         self.convt1 = nn.ConvTranspose2d(hidden_channels, hidden_channels, kernel_size=2, stride=2)
         self.convt2 = nn.ConvTranspose2d(hidden_channels, out_channels, kernel_size=2, stride=2)
         
     def forward(self, x):
         x = self.head(x)
-        x = x.reshape(x.shape[0],self.in_channels, 32, 32)
+        # x = x.reshape(x.shape[0],self.in_channels, 32, 32)
+        x = x.reshape(x.shape[0],self.in_channels, int(self.rows/4), int(self.rows/4))
         out = F.relu(self.convt0(x))
         out = F.relu(self.convt1(out))
         out = torch.sigmoid(self.convt2(out))
@@ -69,14 +72,13 @@ class RLNetwork(nn.Module):
         # self.encoder = Encoder3d(rows, cols, in_channels)
         self.encoder = Encoder3d(in_channels, hidden_channels_enc, out_channels_enc)
         
-        # self.head_mu = nn.Linear(200, 200)
-        # self.head_logvar = nn.Linear(200, 200)
+        # self.head_mu = nn.Linear(2048, 200)
+        self.head_mu = nn.Linear(int(rows*cols/8), 200)
+        # self.head_logvar = nn.Linear(2048, 200)
+        self.head_logvar = nn.Linear(int(rows*cols/8), 200)
 
-        self.head_mu = nn.Linear(2048, 200)
-        self.head_logvar = nn.Linear(2048, 200)
-
-        self.decoder_e = Decoder2d(200, out_channels_enc, hidden_channels_dec, in_channels)
-        self.decoder_a = Decoder2d(200, out_channels_enc, hidden_channels_dec, in_channels)
+        self.decoder_e = Decoder2d(rows, 200, out_channels_enc, hidden_channels_dec, in_channels)
+        self.decoder_a = Decoder2d(rows, 200, out_channels_enc, hidden_channels_dec, in_channels)
 
     def reparameterize(self, mu, logvar):
         if self.training:
