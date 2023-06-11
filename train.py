@@ -42,6 +42,10 @@ parser.add_argument("--first-sample", type=int, default=0,
                     help="first sample id to load")
 parser.add_argument("--sample-interleave", type=int, default=1,
                     help="interleave of sampling during taking frames from video")
+parser.add_argument("--rows", type=int, default=64,
+                    help="rows of resized image")
+parser.add_argument("--cols", type=int, default=64,
+                    help="cols of resized image")
 parser.add_argument("--data-root-dir", type=str, default=None,
                     help="dir to data")
 parser.add_argument("--save-dir", type=str, default=None,
@@ -114,7 +118,7 @@ if __name__ == "__main__":
     ## Load data
 
     datasets = []
-    ROWS, COLS = 128, 128
+    ROWS, COLS = args.rows, args.cols
 
     for model_id, model in enumerate(args.models):
         root_dir = data_root_dir + model + '/'
