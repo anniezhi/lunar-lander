@@ -217,18 +217,22 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
 
-            if logging and counter_log < args.log_count:
+            # if logging and counter_log < args.log_count:
                 # log_classes_goal.append(agent_goal_class[:args.log_count-counter_log].detach())
                 # log_classes_action.append(truth_actions[:args.log_count-counter_log].detach())
-                log_truth.append((agent_class[:args.log_count-counter_log], 
-                                  truth_actions[:args.log_count-counter_log]
-                                  ))
-                log_prediction.append((preds_agent_disc[:args.log_count-counter_log], 
-                                       preds_action_disc[:args.log_count-counter_log]
-                                       ))
-                log_sr.append((target_sr[:args.log_count-counter_log].detach().cpu().numpy(), 
-                               pred_sr[:args.log_count-counter_log].detach().cpu().numpy()))
-                counter_log += min(len(pred_sr), args.log_count-counter_log)
+            # log_truth.append((agent_class[:args.log_count-counter_log], 
+            #                     truth_actions[:args.log_count-counter_log]
+            #                     ))
+            log_truth.append((agent_class.cpu(), truth_actions.cpu()))
+            # log_prediction.append((preds_agent_disc[:args.log_count-counter_log], 
+            #                         preds_action_disc[:args.log_count-counter_log]
+            #                         ))
+            log_prediction.append((preds_agent_disc.cpu(), preds_action_disc.cpu()))
+            # log_sr.append((target_sr[:args.log_count-counter_log].detach().cpu().numpy(), 
+            #                 pred_sr[:args.log_count-counter_log].detach().cpu().numpy()))
+            log_sr.append((target_sr.detach().cpu().numpy(), 
+                            pred_sr.detach().cpu().numpy()))
+            # counter_log += min(len(pred_sr), args.log_count-counter_log)
 
         # loss_goal /= len(dataset)
         # loss_v /= len(dataset)
@@ -306,16 +310,20 @@ if __name__ == "__main__":
                     acc_agent_val += (preds_agent_disc==agent_class).sum()
                     acc_action_val += (preds_action_disc==truth_actions).sum()
 
-                    if counter_log < args.log_count:
-                        log_truth.append((agent_class[:args.log_count-counter_log], 
-                                          truth_actions[:args.log_count-counter_log]
-                                        ))
-                        log_prediction.append((preds_agent_disc[:args.log_count-counter_log], 
-                                               preds_action_disc[:args.log_count-counter_log]
-                                            ))
-                        log_sr.append((target_sr[:args.log_count-counter_log].detach().cpu().numpy(), 
-                                       pred_sr[:args.log_count-counter_log].detach().cpu().numpy()))
-                        counter_log += min(len(pred_sr), args.log_count-counter_log)
+                    # if counter_log < args.log_count:
+                    # log_truth.append((agent_class[:args.log_count-counter_log], 
+                    #                     truth_actions[:args.log_count-counter_log]
+                    #                 ))
+                    log_truth.append((agent_class.cpu(), truth_actions.cpu()))
+                    # log_prediction.append((preds_agent_disc[:args.log_count-counter_log], 
+                    #                         preds_action_disc[:args.log_count-counter_log]
+                    #                     ))
+                    log_prediction.append((preds_agent_disc.cpu(), preds_action_disc.cpu()))
+                    # log_sr.append((target_sr[:args.log_count-counter_log].detach().cpu().numpy(), 
+                    #                 pred_sr[:args.log_count-counter_log].detach().cpu().numpy()))
+                    log_sr.append((target_sr.detach().cpu().numpy(), 
+                                    pred_sr.detach().cpu().numpy()))
+                    # counter_log += min(len(pred_sr), args.log_count-counter_log)
 
                 
                 loss_agent_val /= len(dataset_val)
