@@ -38,8 +38,10 @@ parser.add_argument("--first-sample", type=int, default=0,
                     help="first sample id to load")
 parser.add_argument("--num-samples", type=int, default=100,
                     help="number of samples to load")
-parser.add_argument("--val-ratio", type=float, default=0.2,
-                    help="Ratio of vaildation loss (default: 0.2)")
+parser.add_argument("--num-samples-val", type=int, default=100,
+                    help="number of samples of each agent to load for validation")
+# parser.add_argument("--val-ratio", type=float, default=0.2,
+#                     help="Ratio of vaildation loss (default: 0.2)")
 parser.add_argument("--seq-length", type=int, default=20,
                     help="length of sequence for input")
 parser.add_argument("--start-sample", type=int, default=0,
@@ -112,6 +114,7 @@ if __name__ == "__main__":
     ## Load data
 
     datasets = []
+    datasets_val = []
     ROWS, COLS = args.rows, args.cols
 
     labels_dict_agent_type = {"laggy": 0, "optimal": 1}
@@ -136,13 +139,27 @@ if __name__ == "__main__":
                                      root_dir, model, args.start_sample, args.sample_interleave,
                                      args.rows, args.cols,
                                      args.seq_length, labels_dict_agent_type[model]))
+    
+    for model in args.agent_models:
+        root_dir = data_root_dir + model + '-test/'
+        grid_file = 'env_grids.npy'
+        agent_poss_file = 'agent_poss.npz'
+        actions_file = 'actions.npz'
 
-    dataset = ConcatDataset(datasets)
-    val_size = int(args.val_ratio * len(dataset))
-    train_size = len(dataset) - val_size
-    generator = torch.Generator().manual_seed(args.seed)
-    dataset_train, dataset_val = torch.utils.data.random_split(dataset, [train_size, val_size], generator=generator)
-    print('val ids: ', dataset_val.indices, '\n')
+        sample_ids = [i for i in range(args.num_samples_val)]
+
+        datasets_val.append(VideoDataset(sample_ids, grid_file, agent_poss_file, actions_file,
+                                     root_dir, model, args.start_sample, args.sample_interleave,
+                                     args.rows, args.cols,
+                                     args.seq_length, labels_dict_agent_type[model]))
+
+    dataset_train = ConcatDataset(datasets)
+    dataset_val = ConcatDataset(datasets_val)
+    # val_size = int(args.val_ratio * len(dataset))
+    # train_size = len(dataset) - val_size
+    # generator = torch.Generator().manual_seed(args.seed)
+    # dataset_train, dataset_val = torch.utils.data.random_split(dataset, [train_size, val_size], generator=generator)
+    # print('val ids: ', dataset_val.indices, '\n')
     dataloader_train = DataLoader(dataset_train, batch_size=args.batch_size, num_workers=0, shuffle=True)
     dataloader_val = DataLoader(dataset_val, batch_size=len(dataset_val), num_workers=0, shuffle=False)
     # dataset_train = dataset
@@ -264,8 +281,8 @@ if __name__ == "__main__":
 
         # loss =  loss_goal + loss_v + loss_env + loss_action
 
-        acc_agent = acc_agent.float() / len(dataset)
-        acc_action = acc_action.float() / len(dataset)
+        acc_agent = acc_agent.float() / len(dataset_train)
+        acc_action = acc_action.float() / len(dataset_train)
 
         ## update
         # optimizer.zero_grad()
