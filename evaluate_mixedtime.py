@@ -80,6 +80,11 @@ parser.add_argument("--weight-decay", type=float, default=0.0,
                     help="Adam optimizer weight decay (default: 0.0)")
 parser.add_argument("--scheduler-gamma", type=float, default=0.5,
                     help="lr scheduler gamma (default: 0.5)")
+parser.add_argument("--continue-training", default=False, action='store_true',
+                    help="continue training from last saved model")
+parser.add_argument("--continue-from-best", default=False, action='store_true',
+                    help="use best vae model when continue training if True, otherwise use last model")
+
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -151,6 +156,17 @@ if __name__ == "__main__":
                            out_dims_agent_type=2, out_dims_action=4,
                            conv_channels_in=3, conv_channels_hidden=8,
                            image_size=ROWS)
+    if args.continue_training:
+        if args.continue_from_best:
+            checkpoint = torch.load(save_dir + 'best_model.pt', map_location=torch.device(device))
+        else:
+            checkpoint = torch.load(save_dir + 'last_model.pt', map_location=torch.device(device))
+        model.load_state_dict(checkpoint['model_state_dict'])
+        epoch_start = checkpoint['epoch']+1
+        min_loss = checkpoint['loss']
+    else:
+        epoch_start = 0
+        min_loss = 1e4
     model_MLP.to(device)
     model_MLP.train()
 
@@ -162,7 +178,6 @@ if __name__ == "__main__":
 
     max_acc_agent_type = 0.0
     max_acc_action = 0.0
-    min_loss = 1e4
     min_loss_val = 1e4
 
     logs_sr = {}
@@ -172,7 +187,7 @@ if __name__ == "__main__":
     logs_prediction_val = {}
     logs_truth_val = {}
 
-    for epoch in range(args.epochs):
+    for epoch in range(epoch_start, epoch_start+args.epochs):
         save_flag = False
         logging = False
 
