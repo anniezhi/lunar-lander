@@ -113,7 +113,7 @@ if __name__ == "__main__":
     if args.save_root_dir is None:
         save_dir = os.getcwd() + '/lunar-lander/saved/' + args.save_dir + '/'
     else:
-        save_dir = args.save_root_dir + args.save_dir
+        save_dir = args.save_root_dir + args.save_dir + '/'
     os.makedirs(os.path.dirname(save_dir), exist_ok=True)
 
     writer = SummaryWriter(log_dir=save_dir)
