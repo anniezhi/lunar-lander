@@ -101,7 +101,7 @@ if __name__ == "__main__":
     if args.save_root_dir is None:
         save_dir = os.getcwd() + '/lunar-lander/saved_downstream/' + args.downstream_model + '/'
     else:
-        save_dir = args.save_root_dir + args.downstream_model
+        save_dir = args.save_root_dir + args.downstream_model + '/'
     # save_dir = os.getcwd() + '/lunar-lander/saved_downstream/' + args.downstream_model + '/'
     os.makedirs(os.path.dirname(save_dir), exist_ok=True)
 
