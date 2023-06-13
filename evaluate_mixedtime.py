@@ -168,7 +168,7 @@ if __name__ == "__main__":
             checkpoint = torch.load(save_dir + 'best_model.pt', map_location=torch.device(device))
         else:
             checkpoint = torch.load(save_dir + 'last_model.pt', map_location=torch.device(device))
-        model.load_state_dict(checkpoint['model_state_dict'])
+        model_MLP.load_state_dict(checkpoint['model_state_dict'])
         epoch_start = checkpoint['epoch']+1
         min_loss = checkpoint['loss']
     else:
