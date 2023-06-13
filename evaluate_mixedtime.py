@@ -181,7 +181,7 @@ if __name__ == "__main__":
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.lr_milestones, gamma=args.scheduler_gamma)
     
     criterion = F.cross_entropy
-    criterion_val = nn.CrossEntropyLoss(reduction='sum')
+    # criterion_val = nn.CrossEntropyLoss(reduction='sum')
 
     max_acc_agent_type = 0.0
     max_acc_action = 0.0
@@ -226,7 +226,8 @@ if __name__ == "__main__":
             ## train downstream model
             pred_agent, pred_action, pred_sr = model_MLP(projections)
             loss_agent = args.weight_loss_agent * criterion(pred_agent, agent_class)
-            loss_action = args.weight_loss_action * criterion(pred_action, truth_actions)
+            # loss_action = args.weight_loss_action * criterion(pred_action, truth_actions)
+            loss_action = args.weight_loss_action * criterion(pred_action, truth_actions, weight=torch.tensor([1.0,1.0,1.0,0.4]))
             loss_sr = args.weight_loss_sr * ce_soft_label(target_sr, pred_sr) / len(target_sr)
 
             preds_agent_disc = pred_agent.argmax(dim=1)
@@ -322,8 +323,10 @@ if __name__ == "__main__":
                     _, _, mu, _, projections = model_VAE(seqs_val)
 
                     pred_agent, pred_action, pred_sr = model_MLP(projections)
-                    loss_agent_val += args.weight_loss_agent * criterion(pred_agent, agent_class)
-                    loss_action_val += args.weight_loss_action * criterion(pred_action, truth_actions)
+                    loss_agent_val += args.weight_loss_agent * criterion(pred_agent, agent_class, reduction='sum')
+                    # loss_action_val += args.weight_loss_action * criterion(pred_action, truth_actions)
+                    loss_action_val += args.weight_loss_action * criterion(pred_action, truth_actions, 
+                                                                           reduction='sum', weight=torch.tensor([1.0,1.0,1.0,0.4]))
                     loss_sr_val += args.weight_loss_sr * ce_soft_label(target_sr, pred_sr) / len(target_sr)
 
                     preds_agent_disc = pred_agent.argmax(dim=1)
