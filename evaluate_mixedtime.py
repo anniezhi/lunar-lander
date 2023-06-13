@@ -54,6 +54,8 @@ parser.add_argument("--best-model", default=False, action='store_true',
                     help="use best vae model if True, otherwise use last model")
 parser.add_argument("--save-model", default=False, action='store_true',
                     help="save model after training")
+parser.add_argument("--save-root-dir", type=str, default=None,
+                    help="dir to saved models")
 parser.add_argument("--downstream-model", type=str, default=None,
                     help="names of the downstream RLRL evaluation models")
 parser.add_argument("--weight-loss-agent", type=float, default=1.0,
@@ -95,7 +97,12 @@ if __name__ == "__main__":
     model_dir = os.getcwd() + '/lunar-lander/saved/' + args.vae_model + '/'
     if not os.path.exists(model_dir):
         print(f'VAE model {model_dir} not found')
-    save_dir = os.getcwd() + '/lunar-lander/saved_downstream/' + args.downstream_model + '/'
+
+    if args.save_root_dir is None:
+        save_dir = os.getcwd() + '/lunar-lander/saved_downstream/' + args.downstream_model + '/'
+    else:
+        save_dir = args.save_root_dir + args.downstream_model
+    # save_dir = os.getcwd() + '/lunar-lander/saved_downstream/' + args.downstream_model + '/'
     os.makedirs(os.path.dirname(save_dir), exist_ok=True)
 
     writer = SummaryWriter(log_dir=save_dir)
