@@ -199,6 +199,7 @@ if __name__ == "__main__":
 
         grids_recon_stack = np.mean(grids_recon, axis=0).astype(np.uint8)
         agent_poss_recon_stack = np.sum(agent_poss_recon, axis=0).astype(np.uint8)
+        agent_poss_truth_stack = np.sum(agent_pos_repeat, axis=0).astype(np.uint8)
 
         grid_recon_im = Image.fromarray(grids_recon_stack)
         grid_recon_im.save(save_dir+ f'grid_recon_{remain}_stacked.jpg')
@@ -209,7 +210,8 @@ if __name__ == "__main__":
         poss_recon_im = Image.fromarray(agent_poss_recon_stack)
         poss_recon_im.save(save_dir+ f'poss_recon_{remain}_stacked.jpg')
         
-        poss_truth_im = Image.fromarray(agent_pos_repeat[0])
+        #poss_truth_im = Image.fromarray(agent_pos_repeat[0])
+        poss_truth_im = Image.fromarray(agent_poss_truth_stack)
         poss_truth_im.save(save_dir+ f'poss_truth_{remain}_stacked.jpg')
 
         # for i in range(len(grids_recon)):
@@ -226,7 +228,7 @@ if __name__ == "__main__":
         #     poss_truth_im.save(save_dir+ f'poss_truth_{ids[i]}.jpg')
             
         ## log embeddings
-        log_embeds_enc.append(projections.mean(0).detach().numpy())
+        log_embeds_enc.append(projections.mean(0)[None].detach().numpy())
 
     ## save embeddings
     embeds = np.concatenate(log_embeds_enc)
